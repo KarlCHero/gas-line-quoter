@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheckHero Gas Line Quoter</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <style>
+    body { margin: 0; font-family: 'DM Sans', sans-serif; background: #FAF6F1; }
+    #loading {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; flex-direction: column; gap: 14px;
+      background: #FAF6F1; z-index: 999;
+    }
+    #loading .dot {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid #fcd0c3; border-top-color: #E8472A;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="dot"></div>
+    <div style="font-size:13px;color:#bbb;font-family:sans-serif">Loading…</div>
+  </div>
+  <div id="root"></div>
+
+  <script>
+    fetch('/checkhero-gas-quoter.jsx')
+      .then(r => r.text())
+      .then(src => {
+        // Replace ES module import with global React destructure
+        src = src.replace(
+          /^import\s*\{[^}]+\}\s*from\s*["']react["'];?\r?\n?/m,
+          'const { useState, useRef, useEffect } = React;\n'
+        );
+        // Remove `export default` so GasQuoter lands in function scope
+        src = src.replace(/^export default /m, '');
+        // Mount the app
+        src += '\nReactDOM.createRoot(document.getElementById("root")).render(React.createElement(GasQuoter));\n';
+
+        const { code } = Babel.transform(src, { presets: ['react'] });
+        new Function('React', 'ReactDOM', code)(React, ReactDOM);
+        document.getElementById('loading').remove();
+      })
+      .catch(err => {
+        document.getElementById('loading').remove();
+        document.getElementById('root').innerHTML =
+          '<p style="font-family:sans-serif;padding:30px;color:#E8472A">' +
+          '<strong>Failed to load app:</strong> ' + err.message + '</p>';
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
