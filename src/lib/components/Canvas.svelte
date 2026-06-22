@@ -69,18 +69,16 @@
         <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="transparent" stroke-width="20" />
         <line
           x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
-          stroke={sel ? '#c0392b' : 'var(--ch-orange)'}
+          stroke={sel ? '#c0392b' : s.external ? '#2563eb' : 'var(--ch-orange)'}
           stroke-width={sel ? 5 : 4}
           stroke-linecap="round"
+          stroke-dasharray={s.external ? '7,4' : 'none'}
         />
         {#if !sel}
-          {#if s.length != null}
-            <rect x={mid.x - 34} y={mid.y - 12} width="68" height="22" rx="4" fill="white" stroke="#ede6dc" />
-            <text x={mid.x} y={mid.y + 5} text-anchor="middle" font-size="11" font-weight="700" fill="#333">S{i + 1} · {s.length}m</text>
-          {:else}
-            <rect x={mid.x - 20} y={mid.y - 12} width="40" height="22" rx="4" fill="#fff5f2" stroke="var(--ch-orange)" opacity="0.95" />
-            <text x={mid.x} y={mid.y + 5} text-anchor="middle" font-size="11" font-weight="700" fill="var(--ch-orange)">S{i + 1}</text>
-          {/if}
+          {@const lbl = `S${i + 1}${s.length != null ? ` · ${s.length}m` : ''}${s.external ? ' · EXT' : ''}`}
+          {@const bw = lbl.length * 6 + 12}
+          <rect x={mid.x - bw / 2} y={mid.y - 12} width={bw} height="22" rx="4" fill={s.length != null ? 'white' : '#fff5f2'} stroke={s.external ? '#2563eb' : s.length != null ? '#ede6dc' : 'var(--ch-orange)'} />
+          <text x={mid.x} y={mid.y + 5} text-anchor="middle" font-size="11" font-weight="700" fill={s.external ? '#2563eb' : s.length != null ? '#333' : 'var(--ch-orange)'}>{lbl}</text>
         {/if}
       </g>
     {/each}
@@ -146,6 +144,9 @@
           <button class="ok" onclick={() => Q.commitEdit()}>✓</button>
           <button class="del" title="Delete segment" onclick={() => { Q.delSeg(Q.selSeg); Q.cancelEdit(); }}>✕</button>
         </div>
+        <button class="ext" class:on={s.external} onclick={() => Q.toggleExternal(s.id)}>
+          {s.external ? '☒ External run — copper only (no PEX)' : '☐ Mark as external (copper only)'}
+        </button>
         {#if Q.editErr}<div class="err">{Q.editErr}</div>{/if}
       </div>
     {/if}
@@ -192,6 +193,8 @@
   .ok { background: var(--ch-orange); color: white; border: none; border-radius: 7px; padding: 6px 12px; font-weight: 700; font-size: 12px; cursor: pointer; }
   .del { background: none; border: 1.5px solid var(--ch-orange-pale); border-radius: 7px; padding: 5px 9px; color: var(--ch-orange); font-weight: 700; font-size: 13px; cursor: pointer; line-height: 1; }
   .err { font-size: 10px; color: #dc2626; font-weight: 600; align-self: flex-start; }
+  .ext { width: 100%; margin-top: 2px; padding: 6px 8px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 7px; border: 1.5px solid var(--ch-gray-300); background: white; color: var(--ch-gray-600); }
+  .ext.on { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
 
   .empty { position: absolute; top: 50%; left: 55%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
   .empty .emoji { font-size: 40px; margin-bottom: 10px; }

@@ -75,6 +75,8 @@ export function buildScope(segs, apps, q, appCounts) {
   items.push(`Run new pipework to ${totalApps} appliance${totalApps !== 1 ? 's' : ''}`);
   const tl = segs.reduce((s, g) => s + (g.length || 0), 0);
   if (tl > 0) items.push(`Approx. ${tl}m total pipe run`);
+  const extCount = segs.filter((s) => s.external).length;
+  if (extCount > 0) items.push(`${extCount} external run${extCount > 1 ? 's' : ''} — copper (no PEX)`);
   appCounts.forEach((a) => items.push(`${a.count > 1 ? a.count + '× ' : ''}${labelOf(a)} — connect and commission`));
   if (q.pens > 0) items.push(`${q.pens} wall/floor penetration${q.pens > 1 ? 's' : ''}`);
   if (q.dig > 0) items.push(`Trenching and backfill — ${q.dig}m`);

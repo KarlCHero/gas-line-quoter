@@ -152,6 +152,12 @@ export const quoteStore = {
     persist();
     showToast('Appliance removed');
   },
+  toggleExternal(id) {
+    pushHistory();
+    segs = segs.map((s) => (s.id === id ? { ...s, external: !s.external } : s));
+    persist();
+    showToast('✓ External flag updated');
+  },
   undo() {
     if (!history.length) { showToast('Nothing to undo'); return; }
     const prev = history[history.length - 1];
