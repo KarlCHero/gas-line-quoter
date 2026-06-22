@@ -60,6 +60,7 @@
       <label class="inline">Minutes per metre (beyond base)<span class="dollar"><input type="number" value={cfg.perMetreMins} oninput={numUpd('perMetreMins')} /><em>min</em></span></label>
       <label class="inline">Minutes per appliance connect<span class="dollar"><input type="number" value={cfg.applianceMins} oninput={numUpd('applianceMins')} /><em>min</em></span></label>
       <label class="inline">Meter connection<span class="dollar"><input type="number" step="0.25" value={cfg.meterHours} oninput={numUpd('meterHours')} /><em>hr</em></span></label>
+      <label class="inline">PE→copper transition (per stub)<span class="dollar"><input type="number" value={cfg.transitionMins} oninput={numUpd('transitionMins')} /><em>min</em></span></label>
       <div class="fieldnote">Charge-out follows from the margin: ${cfg.labourRate}/hr ÷ (1 − {cfg.margin}%) = ${cfg.margin < 100 ? (cfg.labourRate / (1 - cfg.margin / 100)).toFixed(0) : '—'}/hr.</div>
     </div>
 

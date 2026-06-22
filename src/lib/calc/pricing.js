@@ -96,12 +96,11 @@ export function calcQuote(segs, apps, q, cfg, margin) {
   // ── Shared (scenario-independent) costs ──
   const rate = cfg.labourRate || 90;
   const extraM = Math.max(0, totalLen - (cfg.baseMetres || 0));
-  const labourHours =
+  const baseLabourHours =
     (cfg.baseHours || 0) +
     extraM * ((cfg.perMetreMins || 0) / 60) +
     apps.length * ((cfg.applianceMins || 0) / 60) +
     (q.newMeter ? (cfg.meterHours || 0) : 0);
-  const labourCost = labourHours * rate;
   const applianceMat = apps.reduce((s, a) => s + ((cfg.applianceMaterial && cfg.applianceMaterial[a.typeId]) || 0), 0);
   const meterMat = q.newMeter ? (cfg.meterMaterial || 0) : 0;
   const siteWorks =
@@ -146,6 +145,9 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     }
     copperM += stubMetres;
 
+    const transitionHours = stubCount * ((cfg.transitionMins || 0) / 60);
+    const labourHours = baseLabourHours + transitionHours;
+    const labourCost = labourHours * rate;
     const copperMat = (copperPipe + stubPipe) * waste;
     const peMat = pePipe * waste;
     const materialCost = copperMat + peMat + applianceMat + meterMat;
@@ -153,6 +155,7 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     const total = subtotal / (1 - Math.min(margin, 99.9) / 100);
     return {
       sized,
+      labourHours, labourCost,
       copperM, peM, copperMat, peMat, materialCost,
       stubs: { count: stubCount, metres: stubMetres, cost: stubPipe * waste },
       subtotal, marginAmt: total - subtotal, total,
@@ -170,8 +173,8 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     totalMJ, longest, totalLen, extraM,
     band: { id: band.id, dropKPa: band.dropKPa, supplyRange: band.supplyRange },
     peBandId: peBand ? peBand.id : null,
-    // labour / site (shared)
-    rate, labourHours, labourCost, applianceMat, meterMat,
+    // labour / site (shared base + mix transitions)
+    rate, labourHours: mix.labourHours, labourCost: mix.labourCost, applianceMat, meterMat,
     penCost: (q.pens || 0) * (cfg.penetrationCost || 0),
     digCost: (q.dig || 0) * (cfg.diggingRate || 0),
     concCost: (q.conc || 0) * (cfg.concreteCuttingRate || 0),

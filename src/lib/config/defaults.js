@@ -18,6 +18,7 @@ export const DEFAULT_CONFIG = {
   perMetreMins: 15, // each metre beyond the base
   applianceMins: 30, // per appliance gas connection
   meterHours: 0.5, // new meter connection
+  transitionMins: 20, // per PE→copper transition (appliance stubs + building entry stubs)
 
   // ── MATERIAL ($/... ex-GST cost, grouped by type) ──
   // Copper all-in $/m (pipe + clips + run-fitting allowance), Samios.

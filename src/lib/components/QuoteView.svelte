@@ -99,7 +99,7 @@
       <h3>Breakdown — Ex GST</h3>
       <div class="rp col">
         <div class="rpline"><span>Labour</span><span>{fmt(qr.labourCost)}</span></div>
-        <div class="sub">{qr.labourHours.toFixed(2)} hr @ {fmt(qr.rate)}/hr (2 hr base + run + {Q.apps.length} appliance{Q.apps.length !== 1 ? 's' : ''}{Q.q.newMeter ? ' + meter' : ''})</div>
+        <div class="sub">{qr.labourHours.toFixed(2)} hr @ {fmt(qr.rate)}/hr (2 hr base + run + {Q.apps.length} appliance{Q.apps.length !== 1 ? 's' : ''}{Q.q.newMeter ? ' + meter' : ''}{qr.stubs.count ? ` + ${qr.stubs.count} transition${qr.stubs.count !== 1 ? 's' : ''}` : ''})</div>
       </div>
       <div class="rp section"><span>Materials</span><span>{fmt(qr.materialCost)}</span></div>
       <div class="rp indent"><span>Copper{#if qr.stubs.count} <span class="muted">· incl. {qr.stubs.count} stub{qr.stubs.count > 1 ? 's' : ''}</span>{:else if cfg.pipeWastePct} <span class="muted">· incl. {cfg.pipeWastePct}% waste</span>{/if}</span><span>{fmt(qr.copperMat)}</span></div>
