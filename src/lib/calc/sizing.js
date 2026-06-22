@@ -6,13 +6,23 @@
  * Cells the standard omits (excessive velocity) are null → that size is skipped.
  */
 import { GRID, METER_POS } from './constants.js';
-import { COPPER_BANDS, RUN_LENGTHS } from './tables.js';
+import { COPPER_BANDS, PE_BANDS, RUN_LENGTHS } from './tables.js';
 
 export const CU_SIZES = [15, 20, 25, 32, 40, 50];
+export const PE_SIZES = [20, 25, 32, 40, 50, 63, 75, 90, 110, 160];
 
-/** Pick the band table for a supply pressure; gap pressures fall to the lower band. */
+/** Pick the copper band table for a supply pressure; gap pressures fall to the lower band. */
 export function selectBand(supplyKPa) {
   return COPPER_BANDS.find((b) => supplyKPa < b.supplyMax) || COPPER_BANDS[COPPER_BANDS.length - 1];
+}
+
+/**
+ * Pick the PE (AS/NZS 4130) band for a supply pressure, or null if PE is not
+ * usable — the standard omits PE below 1.5 kPa, so any lower supply forces copper.
+ */
+export function selectPEBand(supplyKPa) {
+  if (supplyKPa < PE_BANDS[0].supplyMin) return null;
+  return PE_BANDS.find((b) => supplyKPa < b.supplyMax) || PE_BANDS[PE_BANDS.length - 1];
 }
 
 /**
@@ -22,20 +32,21 @@ export function selectBand(supplyKPa) {
 export function capacityAt(band, dn, runLen) {
   const arr = band.sizes[dn];
   if (!arr) return null;
+  const lengths = band.lengths || RUN_LENGTHS;
   const L = Math.max(runLen, 1);
-  const lastIdx = RUN_LENGTHS.length - 1;
+  const lastIdx = lengths.length - 1;
   // At/below the shortest tabulated length.
-  if (L <= RUN_LENGTHS[0]) return arr[0];
+  if (L <= lengths[0]) return arr[0];
   // Exact column hit — return its cell (null if omitted at that exact length).
-  const exact = RUN_LENGTHS.indexOf(L);
+  const exact = lengths.indexOf(L);
   if (exact !== -1) return arr[exact];
   // Interpolate only between ADJACENT tabulated columns. If either bracketing
   // cell is omitted (null = excessive-velocity / not recommended), the size is
   // not valid at this length — do NOT interpolate across the gap.
   for (let i = 0; i < lastIdx; i++) {
-    if (RUN_LENGTHS[i] <= L && L <= RUN_LENGTHS[i + 1]) {
+    if (lengths[i] <= L && L <= lengths[i + 1]) {
       if (arr[i] == null || arr[i + 1] == null) return null;
-      const t = (L - RUN_LENGTHS[i]) / (RUN_LENGTHS[i + 1] - RUN_LENGTHS[i]);
+      const t = (L - lengths[i]) / (lengths[i + 1] - lengths[i]);
       return arr[i] + t * (arr[i + 1] - arr[i]);
     }
   }
@@ -50,8 +61,11 @@ export function capacityAt(band, dn, runLen) {
  * { size, capacity, oversized, overCapacity }.
  */
 export function findSize(flowMJ, runLen, band, headroom = 0.1) {
+  // DN set comes from the band itself (copper 15-50, PE 20-160) — integer-keyed
+  // maps iterate in ascending numeric order, so this is the smallest-first list.
+  const SIZES = Object.keys(band.sizes).map(Number);
   let chosen = null, cap = null;
-  for (const dn of CU_SIZES) {
+  for (const dn of SIZES) {
     const c = capacityAt(band, dn, runLen);
     if (c == null) continue;
     if (c >= flowMJ) { chosen = dn; cap = c; break; }
@@ -59,15 +73,15 @@ export function findSize(flowMJ, runLen, band, headroom = 0.1) {
   if (chosen == null) {
     // Demand exceeds the largest available size at this run length → use the
     // largest available and flag it (needs design review / higher pressure).
-    for (let i = CU_SIZES.length - 1; i >= 0; i--) {
-      const c = capacityAt(band, CU_SIZES[i], runLen);
-      if (c != null) return { size: CU_SIZES[i], capacity: c, oversized: false, overCapacity: true };
+    for (let i = SIZES.length - 1; i >= 0; i--) {
+      const c = capacityAt(band, SIZES[i], runLen);
+      if (c != null) return { size: SIZES[i], capacity: c, oversized: false, overCapacity: true };
     }
-    return { size: CU_SIZES[CU_SIZES.length - 1], capacity: 0, oversized: false, overCapacity: true };
+    return { size: SIZES[SIZES.length - 1], capacity: 0, oversized: false, overCapacity: true };
   }
   let oversized = false;
   if (flowMJ > cap * (1 - headroom)) {
-    for (const dn of CU_SIZES) {
+    for (const dn of SIZES) {
       if (dn <= chosen) continue;
       const c = capacityAt(band, dn, runLen);
       if (c != null) { chosen = dn; cap = c; oversized = true; break; }

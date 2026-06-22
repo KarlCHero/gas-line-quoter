@@ -2,13 +2,14 @@
  * Targeted calc checks — AS/NZS 5601.1:2013 band-table sizing.
  * Run: node tests/calc.test.mjs
  */
-import { analyse, selectBand, capacityAt, findSize, CU_SIZES } from '../src/lib/calc/sizing.js';
+import { analyse, selectBand, selectPEBand, capacityAt, findSize, CU_SIZES, PE_SIZES } from '../src/lib/calc/sizing.js';
 import { calcQuote } from '../src/lib/calc/pricing.js';
 import { DEFAULT_CONFIG } from '../src/lib/config/defaults.js';
-import { COPPER_BANDS } from '../src/lib/calc/tables.js';
-import { oSize, oCapacity } from './_oracle.mjs';
+import { COPPER_BANDS, PE_BANDS } from '../src/lib/calc/tables.js';
+import { oSize, oCapacity, oPESize, oPEBand } from './_oracle.mjs';
 
 const band = (id) => COPPER_BANDS.find((b) => b.id === id);
+const peBand = (id) => PE_BANDS.find((b) => b.id === id);
 
 let pass = 0, fail = 0;
 const approx = (a, b, e = 0.01) => Math.abs(a - b) <= e;
@@ -102,6 +103,47 @@ for (const P of [2.0, 2.75]) {
   const a = Array.from({ length: 80 }, (_, i) => ({ id: i + 1, typeId: 'storage_hws', mj: 200, x: 920, y: 280, label: 'H' }));
   const qr = calcQuote(s, a, { pressure: 1.2, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false }, DEFAULT_CONFIG, 20);
   ok('16000 MJ → DN50 overCapacity flag', qr.sized[0].size === 50 && qr.sized[0].overCapacity === true);
+}
+
+// ── PE (AS/NZS 4130 SDR 11) tables F20/F21/F22 ──
+// Spot cells hand-read from the PDF (verifies parser + table data).
+const PE_PDF_CELLS = [
+  ['F20', 20, 2, 170], ['F20', 160, 2, 65337], ['F20', 40, 320, 108],
+  ['F21', 20, 2, 308], ['F21', 160, 20, 34063], ['F21', 160, 320, 7601],
+  ['F22', 110, 2, 64607], ['F22', 25, 18, 317], ['F22', 160, 320, 11059]
+];
+for (const [b, dn, len, mj] of PE_PDF_CELLS) {
+  ok(`PE ${b} DN${dn}@${len}m = ${mj} (PDF)`, capacityAt(peBand(b), dn, len) === mj);
+}
+
+// PE band selection — no PE table below 1.5 kPa (must force copper), gap → lower.
+ok('PE 1.2 kPa → null (no PE table)', selectPEBand(1.2) === null);
+ok('PE 1.5 kPa → F20', selectPEBand(1.5).id === 'F20');
+ok('PE 2.6 kPa → F20 (gap → lower)', selectPEBand(2.6).id === 'F20');
+ok('PE 2.75 kPa → F21', selectPEBand(2.75).id === 'F21');
+ok('PE 6 kPa → F22', selectPEBand(6).id === 'F22');
+
+// PE availability / omitted cells (small DN drops out at long runs; DN160 at short).
+ok('PE F20 DN20 null @20m (omitted past 18m)', capacityAt(peBand('F20'), 20, 20) === null);
+ok('PE F20 DN160 @320m = 4195', capacityAt(peBand('F20'), 160, 320) === 4195);
+ok('PE F21 DN160 null @2m (omitted at short run)', capacityAt(peBand('F21'), 160, 2) === null);
+
+// PE findSize over a deterministic flow×length×pressure grid vs the independent oracle.
+{
+  let peChecks = 0, peOk = 0;
+  for (const P of [1.5, 2.0, 2.7, 2.75, 4.0, 6.0, 9.0]) {
+    const pb = selectPEBand(P);
+    ok(`PE selectPEBand(${P}) matches oracle`, (pb && pb.id) === (oPEBand(P) && oPEBand(P).id));
+    for (const flow of [20, 50, 120, 200, 500, 2000, 8000]) {
+      for (const len of [2, 5, 12, 28, 55, 90, 150, 250, 320]) {
+        const e = findSize(flow, len, pb);
+        const o = oPESize(flow, len, P);
+        peChecks++;
+        if (e.size === o.size && e.oversized === o.oversized && e.overCapacity === o.overCapacity && PE_SIZES.includes(e.size)) peOk++;
+      }
+    }
+  }
+  ok(`PE findSize matches oracle across ${peChecks} flow×length cases`, peOk === peChecks);
 }
 
 // ── Guards ──
