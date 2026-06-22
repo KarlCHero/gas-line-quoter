@@ -1,6 +1,9 @@
 <script>
-  import { GRID, METER_POS, PIPE_COLORS, APPLIANCE_ICONS, snapV } from '$lib/calc/constants.js';
+  import { GRID, METER_POS, PIPE_COLORS, APPLIANCE_ICONS, snapV, PIPE_LOCATIONS, locOf } from '$lib/calc/constants.js';
   import { quoteStore as Q } from '$lib/stores/quote.svelte.js';
+
+  // Solid = internal copper; dashed = external copper; dotted = PE-eligible.
+  const dashOf = (loc) => (loc.id === 'external' ? '7,4' : loc.pe ? '2,5' : 'none');
   import ApplianceGlyph from './ApplianceGlyph.svelte';
 
   let svgEl;
@@ -65,20 +68,22 @@
       {@const mid = segMid(s)}
       {@const sel = Q.selSeg === s.id}
       <!-- svelte-ignore a11y_click_events_have_key_events -- canvas SVG editing is pointer-only by design -->
+      {@const loc = locOf(s)}
+      {@const col = sel ? '#c0392b' : loc.color}
       <g class="seg" role="button" tabindex="-1" onclick={(e) => { e.stopPropagation(); Q.openEdit(s); }}>
         <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="transparent" stroke-width="20" />
         <line
           x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
-          stroke={sel ? '#c0392b' : s.external ? '#2563eb' : 'var(--ch-orange)'}
+          stroke={col}
           stroke-width={sel ? 5 : 4}
           stroke-linecap="round"
-          stroke-dasharray={s.external ? '7,4' : 'none'}
+          stroke-dasharray={dashOf(loc)}
         />
         {#if !sel}
-          {@const lbl = `S${i + 1}${s.length != null ? ` · ${s.length}m` : ''}${s.external ? ' · EXT' : ''}`}
+          {@const lbl = `S${i + 1}${s.length != null ? ` · ${s.length}m` : ''}${loc.id !== 'internal' ? ` · ${loc.short}` : ''}`}
           {@const bw = lbl.length * 6 + 12}
-          <rect x={mid.x - bw / 2} y={mid.y - 12} width={bw} height="22" rx="4" fill={s.length != null ? 'white' : '#fff5f2'} stroke={s.external ? '#2563eb' : s.length != null ? '#ede6dc' : 'var(--ch-orange)'} />
-          <text x={mid.x} y={mid.y + 5} text-anchor="middle" font-size="11" font-weight="700" fill={s.external ? '#2563eb' : s.length != null ? '#333' : 'var(--ch-orange)'}>{lbl}</text>
+          <rect x={mid.x - bw / 2} y={mid.y - 12} width={bw} height="22" rx="4" fill={s.length != null ? 'white' : '#fff5f2'} stroke={loc.id !== 'internal' ? col : s.length != null ? '#ede6dc' : 'var(--ch-orange)'} />
+          <text x={mid.x} y={mid.y + 5} text-anchor="middle" font-size="11" font-weight="700" fill={loc.id !== 'internal' ? col : s.length != null ? '#333' : 'var(--ch-orange)'}>{lbl}</text>
         {/if}
       </g>
     {/each}
@@ -144,9 +149,17 @@
           <button class="ok" onclick={() => Q.commitEdit()}>✓</button>
           <button class="del" title="Delete segment" onclick={() => { Q.delSeg(Q.selSeg); Q.cancelEdit(); }}>✕</button>
         </div>
-        <button class="ext" class:on={s.external} onclick={() => Q.toggleExternal(s.id)}>
-          {s.external ? '☒ External run — copper only (no PEX)' : '☐ Mark as external (copper only)'}
-        </button>
+        <div class="loclbl">Run location {#if locOf(s).pe}<em class="pe">PE ok</em>{:else}<em class="cu">copper</em>{/if}</div>
+        <div class="locs">
+          {#each PIPE_LOCATIONS as loc (loc.id)}
+            <button
+              class="loc" class:on={(s.location || 'internal') === loc.id}
+              style="--lc:{loc.color}"
+              title={`${loc.label} — ${loc.pe ? 'PE allowed' : 'copper'}`}
+              onclick={() => Q.setLocation(s.id, loc.id)}
+            >{loc.short}</button>
+          {/each}
+        </div>
         {#if Q.editErr}<div class="err">{Q.editErr}</div>{/if}
       </div>
     {/if}
@@ -193,8 +206,13 @@
   .ok { background: var(--ch-orange); color: white; border: none; border-radius: 7px; padding: 6px 12px; font-weight: 700; font-size: 12px; cursor: pointer; }
   .del { background: none; border: 1.5px solid var(--ch-orange-pale); border-radius: 7px; padding: 5px 9px; color: var(--ch-orange); font-weight: 700; font-size: 13px; cursor: pointer; line-height: 1; }
   .err { font-size: 10px; color: #dc2626; font-weight: 600; align-self: flex-start; }
-  .ext { width: 100%; margin-top: 2px; padding: 6px 8px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 7px; border: 1.5px solid var(--ch-gray-300); background: white; color: var(--ch-gray-600); }
-  .ext.on { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
+  .loclbl { font-size: 10px; font-weight: 700; color: var(--ch-gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; display: flex; gap: 6px; align-items: center; }
+  .loclbl em { font-style: normal; font-size: 9px; padding: 1px 5px; border-radius: 4px; }
+  .loclbl .pe { background: #ecfdf5; color: #16a34a; }
+  .loclbl .cu { background: #fff5f2; color: var(--ch-orange); }
+  .locs { display: flex; gap: 4px; }
+  .loc { flex: 1; padding: 5px 2px; font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; border-radius: 6px; border: 1.5px solid var(--ch-gray-300); background: white; color: var(--ch-gray-500); }
+  .loc.on { border-color: var(--lc); background: color-mix(in srgb, var(--lc) 12%, white); color: var(--lc); }
 
   .empty { position: absolute; top: 50%; left: 55%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
   .empty .emoji { font-size: 40px; margin-bottom: 10px; }

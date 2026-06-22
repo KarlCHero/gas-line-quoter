@@ -13,7 +13,7 @@
     if (!qr) return '';
     const L = [];
     L.push(`Gas Installation${Q.q.addr ? ` — ${Q.q.addr}` : ''}`);
-    L.push('Natural Gas · Copper · AS/NZS 5601.1:2013');
+    L.push(`Natural Gas · Copper${qr.hasPE ? ' / PE' : ''} · AS/NZS 5601.1:2013`);
     L.push('');
     L.push('Scope of works:');
     for (const item of Q.scope()) L.push(`• ${item}`);

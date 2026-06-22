@@ -146,6 +146,51 @@ ok('PE F21 DN160 null @2m (omitted at short run)', capacityAt(peBand('F21'), 160
   ok(`PE findSize matches oracle across ${peChecks} flow×length cases`, peOk === peChecks);
 }
 
+// ── Copper / PE mix costing ──
+const mixJob = (P) => ({ addr: '', pressure: P, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false });
+const segOf = (qr, id) => qr.sized.find((s) => s.id === id);
+{
+  // s1 internal (copper-only), s2 buried (PE-eligible), one cooktop on s2's end.
+  const ms = [
+    { id: 's1', x1: 120, y1: 280, x2: 440, y2: 280, length: 10, location: 'internal' },
+    { id: 's2', x1: 440, y1: 280, x2: 440, y2: 160, length: 8, location: 'buried' }
+  ];
+  const ma = [{ id: 'a1', typeId: 'cooktop', x: 440, y: 160, mj: 30, label: 'Cooktop' }];
+  const qr = calcQuote(ms, ma, mixJob(2.0), DEFAULT_CONFIG, 40);
+  ok('mix: internal seg → copper', segOf(qr, 's1').material === 'copper');
+  ok('mix: buried seg → PE', segOf(qr, 's2').material === 'pe');
+  ok('mix: PE DN comes from PE_SIZES', PE_SIZES.includes(segOf(qr, 's2').size));
+  ok('mix: copper scenario all copper', qr.scenarios.copper.sized.every((s) => s.material === 'copper'));
+  ok('mix: maxPE puts internal on PE too', qr.scenarios.maxPE.sized.find((s) => s.id === 's1').material === 'pe');
+  ok('mix: appliance on PE branch → 1 copper stub', qr.stubs.count === 1);
+  ok('mix: hasPE flag set', qr.hasPE === true);
+  ok('mix: PE is cheaper → positive saving', qr.saving > 0);
+  ok('mix: primary total = mix scenario', approx(qr.total, qr.scenarios.mix.total));
+  ok('mix: copper total ≥ mix total', qr.scenarios.copper.total >= qr.scenarios.mix.total);
+}
+{
+  // External seg meets a buried seg → outside→inside entry; appliance on PE end.
+  const ms = [
+    { id: 's1', x1: 120, y1: 280, x2: 440, y2: 280, length: 5, location: 'external' },
+    { id: 's2', x1: 440, y1: 280, x2: 440, y2: 160, length: 8, location: 'buried' }
+  ];
+  const ma = [{ id: 'a1', typeId: 'cooktop', x: 440, y: 160, mj: 30, label: 'Cooktop' }];
+  const qr = calcQuote(ms, ma, mixJob(2.0), DEFAULT_CONFIG, 40);
+  ok('entry: external seg stays copper', segOf(qr, 's1').material === 'copper');
+  ok('entry: 2 stubs (appliance + building entry)', qr.stubs.count === 2);
+  ok('entry: stub metres = 2 × copperStubM', approx(qr.stubs.metres, 2 * DEFAULT_CONFIG.copperStubM));
+}
+{
+  // Below 1.5 kPa the standard omits PE → mix must fall back to all copper.
+  const ms = [{ id: 's1', x1: 120, y1: 280, x2: 440, y2: 280, length: 10, location: 'buried' }];
+  const ma = [{ id: 'a1', typeId: 'cooktop', x: 440, y: 280, mj: 30, label: 'Cooktop' }];
+  const qr = calcQuote(ms, ma, mixJob(1.2), DEFAULT_CONFIG, 40);
+  ok('low P: peBandId null', qr.peBandId === null);
+  ok('low P: no PE used', qr.hasPE === false && segOf(qr, 's1').material === 'copper');
+  ok('low P: no saving', approx(qr.saving, 0));
+  ok('low P: no stubs', qr.stubs.count === 0);
+}
+
 // ── Guards ──
 ok('empty → null', calcQuote([], [], { pressure: 2 }, DEFAULT_CONFIG, 20) === null);
 ok('no appliances → null', calcQuote(segs, [], { pressure: 2 }, DEFAULT_CONFIG, 20) === null);

@@ -23,9 +23,16 @@ export const DEFAULT_CONFIG = {
   // Copper all-in $/m (pipe + clips + run-fitting allowance), Samios.
   // DN15 = 12mm stick (~$7.32/m), confirmed vs Reece 15mm ($8.93/m).
   copperRates: { 15: 9, 20: 14, 25: 21, 32: 31, 40: 38, 50: 57 },
-  // PEX/multilayer all-in $/m — PLACEHOLDER for the upcoming copper/PEX mix
-  // feature (Stesso/Auspex ~$3/m pipe + clips + fittings). Tune when it lands.
-  pexRates: { 20: 6, 25: 9, 32: 13 },
+  // PE (AS/NZS 4130 SDR 11) all-in $/m for the copper/PE mix — pipe + fittings +
+  // tracer/marking allowance. DN are PE OD sizes. 20-32 from Samios PE; 40+ are
+  // [est — tune] (rarely needed on residential gas). PE is sized off F20-F22.
+  peRates: { 20: 6, 25: 9, 32: 13, 40: 19, 50: 28, 63: 42, 75: 60, 90: 84, 110: 120, 160: 240 },
+  // Locations where PE is permitted (concealed / non-living). External + internal
+  // (in-wall) are always copper. Editable so policy can change per install style.
+  peLocations: ['buried', 'under-house', 'in-roof'],
+  // Copper stub length (m) forced at each appliance connection and at every
+  // outside→inside building entry (PE can't be exposed at the transition).
+  copperStubM: 1,
   // Gas-side connection material per appliance (isolation valve + flex/bayonet).
   applianceMaterial: {
     cooktop: 37,

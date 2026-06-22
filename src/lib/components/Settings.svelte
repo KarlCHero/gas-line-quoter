@@ -1,7 +1,7 @@
 <script>
   import { settings } from '$lib/stores/settings.svelte.js';
   import { SUPABASE_READY } from '$lib/services/supabase.js';
-  import { APPLIANCE_TYPES } from '$lib/calc/constants.js';
+  import { APPLIANCE_TYPES, PIPE_LOCATIONS } from '$lib/calc/constants.js';
 
   const cfg = $derived(settings.cfg);
   let saveMsg = $state('');
@@ -9,6 +9,12 @@
   const numUpd = (path) => (e) => settings.update(path, Number(e.currentTarget.value) || 0);
   const txtUpd = (path) => (e) => settings.update(path, e.currentTarget.value);
   const DN = [15, 20, 25, 32, 40, 50];
+  const PE_DN = [20, 25, 32, 40, 50, 63, 75, 90, 110, 160];
+  const PE_LOC_CHOICES = PIPE_LOCATIONS.filter((l) => l.pe);
+  const togglePE = (id) => {
+    const cur = cfg.peLocations || [];
+    settings.update('peLocations', cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+  };
 
   async function save() {
     const res = await settings.save();
@@ -67,11 +73,21 @@
     </div>
 
     <div class="card">
-      <h3>🔵 PEX material — All-in ($/m)</h3>
-      {#each [20, 25, 32] as dn}
-        <label class="inline">DN{dn}<span class="dollar"><i>$</i><input type="number" value={cfg.pexRates?.[dn] ?? 0} oninput={numUpd(`pexRates.${dn}`)} /><em>/m</em></span></label>
-      {/each}
-      <div class="fieldnote">Placeholder for the upcoming copper/PEX mix feature (Stesso/Auspex). Not used in quotes yet.</div>
+      <h3>🟢 PE material — All-in ($/m)</h3>
+      <div class="petwo">
+        {#each PE_DN as dn}
+          <label class="inline">DN{dn}<span class="dollar"><i>$</i><input type="number" value={cfg.peRates?.[dn] ?? 0} oninput={numUpd(`peRates.${dn}`)} /><em>/m</em></span></label>
+        {/each}
+      </div>
+      <div class="fieldnote">PE (AS/NZS 4130 SDR 11), sizes are OD. DN20-32 from Samios; DN40+ are estimates. Sized off Tables F20-F22.</div>
+      <h3 class="sub2">PE-eligible locations</h3>
+      <div class="loctoggles">
+        {#each PE_LOC_CHOICES as l (l.id)}
+          <button class="loctgl" class:on={(cfg.peLocations || []).includes(l.id)} style="--lc:{l.color}" onclick={() => togglePE(l.id)}>{l.label}</button>
+        {/each}
+      </div>
+      <label class="inline">Copper stub at appliances / entries<span class="dollar"><input type="number" step="0.5" value={cfg.copperStubM} oninput={numUpd('copperStubM')} /><em>m</em></span></label>
+      <div class="fieldnote">External &amp; in-wall runs are always copper. PE can't be exposed at a transition, so a copper stub is forced at each appliance and outside→inside entry.</div>
     </div>
 
     <div class="card">
@@ -122,7 +138,12 @@
   .dollar i { color: #bbb; font-style: normal; }
   .dollar em { color: #bbb; font-style: normal; font-size: 12px; }
   .dollar input { width: 90px; text-align: right; }
-  .fieldnote { font-size: 11px; color: var(--ch-gray-400); margin-top: -4px; line-height: 1.4; }
+  .fieldnote { font-size: 11px; color: var(--ch-gray-400); margin-top: -4px; line-height: 1.4; margin-bottom: 12px; }
+  .petwo { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .sub2 { font-size: 13px; margin: 6px 0 10px; }
+  .loctoggles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .loctgl { padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 8px; border: 1.5px solid var(--ch-gray-300); background: white; color: var(--ch-gray-500); }
+  .loctgl.on { border-color: var(--lc); background: color-mix(in srgb, var(--lc) 12%, white); color: var(--lc); }
   @media (max-width: 720px) {
     .grid { grid-template-columns: 1fr; }
   }

@@ -1,7 +1,7 @@
 <script>
   import { quoteStore as Q } from '$lib/stores/quote.svelte.js';
   import { settings } from '$lib/stores/settings.svelte.js';
-  import { PIPE_COLORS } from '$lib/calc/constants.js';
+  import { PIPE_COLORS, locOf } from '$lib/calc/constants.js';
   import LayoutDiagram from './LayoutDiagram.svelte';
 
   let { onBack } = $props();
@@ -14,16 +14,24 @@
     if (!mat) return [];
     const r = [];
     const wf = 1 + wastePct / 100;
-    for (const [size, m] of Object.entries(mat.pipeBySize)) {
-      r.push({ item: `DN${size} Copper pipe`, qty: `${(m * wf).toFixed(1)} m`, note: wastePct ? `incl. ${wastePct}% waste` : 'no waste allowance' });
+    const wnote = wastePct ? `incl. ${wastePct}% waste` : 'no waste allowance';
+    for (const [size, m] of Object.entries(mat.pipeByMat.copper)) {
+      r.push({ item: `DN${size} Copper pipe (AS 1432)`, qty: `${(m * wf).toFixed(1)} m`, note: wnote });
     }
+    for (const [size, m] of Object.entries(mat.pipeByMat.pe)) {
+      r.push({ item: `DN${size} PE pipe (AS/NZS 4130)`, qty: `${(m * wf).toFixed(1)} m`, note: wnote });
+    }
+    if (mat.transitions) r.push({ item: 'Copper↔PE transition adaptors', qty: `${mat.transitions}`, note: `appliance + entry stubs (${mat.stubMetres} m copper)` });
     r.push({ item: '90° Elbows', qty: `~${mat.elbows}`, note: 'at bends + 2 per appliance connection' });
     if (mat.midRunCouplers) r.push({ item: 'Couplers (mid-run)', qty: `~${mat.midRunCouplers}`, note: 'for runs >4 m (copper length)' });
     if (mat.couplings) r.push({ item: 'Inline couplers', qty: `~${mat.couplings}`, note: 'straight-through joins' });
     if (mat.reducers) r.push({ item: 'Reducers', qty: `~${mat.reducers}`, note: 'size transitions' });
     if (mat.tees) r.push({ item: 'Tees', qty: `${mat.tees}`, note: 'branch junctions' });
-    for (const [size, c] of Object.entries(mat.supportsBySize)) {
-      r.push({ item: `DN${size} Pipe supports / clips`, qty: `~${c}`, note: '@ 1.5m centres — saddle clamps' });
+    for (const [size, c] of Object.entries(mat.supportsByMat.copper)) {
+      r.push({ item: `DN${size} Copper supports / clips`, qty: `~${c}`, note: '@ 1.5m centres — saddle clamps' });
+    }
+    for (const [size, c] of Object.entries(mat.supportsByMat.pe)) {
+      r.push({ item: `DN${size} PE supports / clips`, qty: `~${c}`, note: '@ 1.5m centres' });
     }
     r.push({ item: 'Flexible hose connectors', qty: `${mat.flexHoses}`, note: 'cooktops & freestanding cookers only' });
     r.push({ item: 'Isolation valves', qty: `${mat.isolationValves}`, note: '1 per appliance + 1 at meter' });
@@ -69,11 +77,12 @@
       <div class="block">
         <div class="sechead">Pipe Sections</div>
         <table>
-          <thead><tr><th class="l">Section</th><th class="l">Length</th><th class="l">Flow</th><th class="r">Size</th></tr></thead>
+          <thead><tr><th class="l">Section</th><th class="l">Run</th><th class="l">Length</th><th class="l">Flow</th><th class="r">Size</th></tr></thead>
           <tbody>
             {#each qr.sized as s, i (s.id)}
               <tr>
                 <td class="l"><span class="sid">S{i + 1}</span></td>
+                <td class="l">{locOf(s).label} · <span class="mat {s.material}">{s.material === 'pe' ? 'PE' : 'Cu'}</span></td>
                 <td class="l">{s.length ? `${s.length} m` : '—'}</td>
                 <td class="l">{s.flow} MJ/hr</td>
                 <td class="r"><span class="dn" style="background:{PIPE_COLORS[s.size]}">DN{s.size}</span></td>
@@ -130,6 +139,9 @@
   td.note { color: #aaa; font-size: 12px; }
   .sid { background: var(--ch-cream); border-radius: 5px; padding: 2px 8px; font-weight: 700; font-size: 11px; }
   .dn { color: white; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: 800; }
+  .mat { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 4px; }
+  .mat.copper { background: #fff5f2; color: var(--ch-orange); }
+  .mat.pe { background: #ecfdf5; color: #16a34a; }
   .disclaimer { margin-top: 8px; padding: 8px 12px; background: #fff9f7; border-radius: 8px; border: 1px solid var(--ch-orange-pale); font-size: 11px; color: #999; }
   @media print {
     .no-print { display: none; }

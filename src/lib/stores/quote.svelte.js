@@ -3,7 +3,7 @@
  * and the derived priced quote. Persists the working layout to localStorage so
  * nothing is lost on reload (mirrors the legacy React behaviour).
  */
-import { GRID, APPLIANCE_TYPES, snapV } from '$lib/calc/constants.js';
+import { GRID, APPLIANCE_TYPES, snapV, DEFAULT_LOCATION } from '$lib/calc/constants.js';
 import { calcQuote, buildScope } from '$lib/calc/pricing.js';
 import { calcMaterials } from '$lib/calc/materials.js';
 import { DEFAULT_CONFIG } from '$lib/config/defaults.js';
@@ -21,7 +21,11 @@ const load = (key, fallback) => {
 };
 
 const Q_DEFAULTS = { addr: '', pressure: 2.0, newMeter: true, pens: 0, dig: 0, conc: 0, twoS: false };
-let segs = $state(load('chk_gq_segs', []));
+// Normalise saved segments to the location model (migrates the legacy `external`
+// boolean → location 'external'; everything else defaults to 'internal').
+const normalizeSegs = (arr) =>
+  (arr || []).map(({ external, ...s }) => ({ ...s, location: s.location || (external ? 'external' : DEFAULT_LOCATION) }));
+let segs = $state(normalizeSegs(load('chk_gq_segs', [])));
 let apps = $state(load('chk_gq_apps', []));
 // Merge with defaults so an older/partial saved object can't leave undefined
 // fields (which would produce NaN costs downstream).
@@ -99,7 +103,7 @@ export const quoteStore = {
   setMouse(p) { mouse = p; },
   setQ(patch) { Object.assign(q, patch); persist(); },
 
-  scope() { return buildScope(segs, apps, q, appCounts); },
+  scope() { return buildScope(segs, apps, q, appCounts, settings.cfg); },
   materials() { return calcMaterials(segs, apps, q, quote); },
 
   // ── Drawing ──
@@ -114,7 +118,7 @@ export const quoteStore = {
     if (!d) return;
     if (Math.abs(d.x2 - d.x1) > 4 || Math.abs(d.y2 - d.y1) > 4) {
       pushHistory();
-      segs = [...segs, { ...d, id: sid++, length: null }];
+      segs = [...segs, { ...d, id: sid++, length: null, location: DEFAULT_LOCATION }];
       persist();
       showToast('✓ Pipe segment added');
     }
@@ -152,11 +156,11 @@ export const quoteStore = {
     persist();
     showToast('Appliance removed');
   },
-  toggleExternal(id) {
+  setLocation(id, location) {
     pushHistory();
-    segs = segs.map((s) => (s.id === id ? { ...s, external: !s.external } : s));
+    segs = segs.map((s) => (s.id === id ? { ...s, location } : s));
     persist();
-    showToast('✓ External flag updated');
+    showToast('✓ Run location updated');
   },
   undo() {
     if (!history.length) { showToast('Nothing to undo'); return; }

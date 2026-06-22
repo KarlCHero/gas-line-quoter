@@ -42,25 +42,25 @@ export function calcMaterials(segs, apps, q, qr) {
   // Appliance stub-in elbows (2 per appliance).
   elbows += apps.length * 2;
 
-  // Supports @ 1.5m centres, by DN size.
-  const supportsBySize = {};
+  // Pipe + supports, split by MATERIAL (copper & PE DN sets overlap, so they
+  // must not be merged) then by size. Supports @ 1.5 m centres (1.0 m vertical).
+  const mt = (s) => (s.material === 'pe' ? 'pe' : 'copper');
+  const pipeByMat = { copper: {}, pe: {} };
+  const supportsByMat = { copper: {}, pe: {} };
   qr.sized.forEach((s) => {
-    if (s.length) {
-      // Two-storey/vertical runs need tighter support centres (1.0 m vs 1.5 m).
-      const centres = q.twoS ? 1.0 : 1.5;
-      const count = Math.ceil(s.length / centres);
-      supportsBySize[s.size] = (supportsBySize[s.size] || 0) + count;
-    }
+    if (!s.length) return;
+    const m = mt(s);
+    pipeByMat[m][s.size] = (pipeByMat[m][s.size] || 0) + s.length;
+    const centres = q.twoS ? 1.0 : 1.5;
+    supportsByMat[m][s.size] = (supportsByMat[m][s.size] || 0) + Math.ceil(s.length / centres);
   });
 
-  // Pipe quantities by size (waste added at display time).
-  const pipeBySize = {};
-  qr.sized.forEach((s) => { if (s.length) pipeBySize[s.size] = (pipeBySize[s.size] || 0) + s.length; });
-
   return {
-    elbows, tees, couplings, reducers, midRunCouplers, supportsBySize,
+    elbows, tees, couplings, reducers, midRunCouplers, supportsByMat,
     flexHoses: apps.filter((a) => a.typeId === 'cooktop' || a.typeId === 'freestanding_cooker').length,
     isolationValves: apps.length + (q.newMeter ? 1 : 0),
-    pipeBySize
+    pipeByMat,
+    stubMetres: qr.stubs ? qr.stubs.metres : 0,
+    transitions: qr.stubs ? qr.stubs.count : 0
   };
 }

@@ -23,6 +23,28 @@ export const PIPE_COLORS = {
   50: '#db2777'
 };
 
+/**
+ * Pipe-run locations. The location drives material choice in the copper/PE mix:
+ * PE (AS/NZS 4130) is only permitted in concealed/accessible non-living spaces
+ * (buried, under-house subfloor, in-roof). External and internal (in-wall) runs
+ * are copper. The PE-eligible set is configurable (cfg.peLocations); this list is
+ * the canonical id/label/default-eligibility source for the UI.
+ */
+export const PIPE_LOCATIONS = [
+  { id: 'internal', label: 'Internal (in wall)', short: 'INT', color: '#FF5815', pe: false },
+  { id: 'external', label: 'External', short: 'EXT', color: '#2563eb', pe: false },
+  { id: 'under-house', label: 'Under house', short: 'SUB', color: '#0891b2', pe: true },
+  { id: 'in-roof', label: 'In roof', short: 'ROOF', color: '#7c3aed', pe: true },
+  { id: 'buried', label: 'Buried', short: 'BUR', color: '#16a34a', pe: true }
+];
+
+export const DEFAULT_LOCATION = 'internal';
+export const PE_LOCATIONS_DEFAULT = PIPE_LOCATIONS.filter((l) => l.pe).map((l) => l.id);
+const LOC_BY_ID = Object.fromEntries(PIPE_LOCATIONS.map((l) => [l.id, l]));
+
+/** Safe location descriptor for a segment (handles legacy/missing values). */
+export const locOf = (seg) => LOC_BY_ID[seg?.location] || LOC_BY_ID[DEFAULT_LOCATION];
+
 /** Disc colours for appliance markers. */
 export const APPLIANCE_ICONS = {
   cooktop: { color: '#EA580C' },
