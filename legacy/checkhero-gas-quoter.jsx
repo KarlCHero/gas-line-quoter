@@ -13,6 +13,9 @@ const APPLIANCE_TYPES = [
   { id:"instant_hws",         label:"Instantaneous HWS",   mj:200 },
 ];
 
+// Safe appliance label — falls back to the type's label, never crashes on missing label
+const labelOf = a => a.label || (APPLIANCE_TYPES.find(t => t.id === a.typeId) || {}).label || "Appliance";
+
 // Coloured badge icons — iOS-style circle disc with white stroke SVG icon
 const APPLIANCE_ICONS = {
   cooktop:             { color: '#EA580C' },
@@ -262,7 +265,7 @@ function TradesDiagram({segs, apps, tradesQr}) {
           </g>
         );
       })}
-      {apps.map(a=>{const ic=APPLIANCE_ICONS[a.typeId]||{color:'#888'};return(<g key={a.id}><circle cx={tx(a.x)} cy={ty(a.y)} r={18} fill={ic.color}/><g transform={`translate(${tx(a.x)-10},${ty(a.y)-10})`}>{ApplianceIconGlyphs(a.typeId)}</g><text x={tx(a.x)} y={ty(a.y)+30} textAnchor="middle" fontSize={8} fontWeight={700} fill="#666">{a.label.split(" ")[0]}</text></g>);})}
+      {apps.map(a=>{const ic=APPLIANCE_ICONS[a.typeId]||{color:'#888'};return(<g key={a.id}><circle cx={tx(a.x)} cy={ty(a.y)} r={18} fill={ic.color}/><g transform={`translate(${tx(a.x)-10},${ty(a.y)-10})`}>{ApplianceIconGlyphs(a.typeId)}</g><text x={tx(a.x)} y={ty(a.y)+30} textAnchor="middle" fontSize={8} fontWeight={700} fill="#666">{labelOf(a).split(" ")[0]}</text></g>);})}
       <polygon points={`${tx(METER_POS.x)},${ty(METER_POS.y)-17} ${tx(METER_POS.x)+14},${ty(METER_POS.y)-8} ${tx(METER_POS.x)+14},${ty(METER_POS.y)+8} ${tx(METER_POS.x)},${ty(METER_POS.y)+17} ${tx(METER_POS.x)-14},${ty(METER_POS.y)+8} ${tx(METER_POS.x)-14},${ty(METER_POS.y)-8}`} fill="#E8472A"/>
       <text x={tx(METER_POS.x)} y={ty(METER_POS.y)+2} textAnchor="middle" fontSize={7} fontWeight={800} fill="white">METER</text>
       <text x={tx(METER_POS.x)} y={ty(METER_POS.y)+12} textAnchor="middle" fontSize={7} fill="rgba(255,255,255,.75)">GAS</text>
@@ -443,7 +446,7 @@ function ClientDiagram({segs,apps}) {
           </g>
         );
       })}
-      {apps.map(a=>{const ic=APPLIANCE_ICONS[a.typeId]||{color:'#888'};return(<g key={a.id}><circle cx={tx(a.x)} cy={ty(a.y)} r={18} fill={ic.color}/><g transform={`translate(${tx(a.x)-10},${ty(a.y)-10})`}>{ApplianceIconGlyphs(a.typeId)}</g><text x={tx(a.x)} y={ty(a.y)+30} textAnchor="middle" fontSize={8} fontWeight={700} fill="#666">{a.label.split(" ")[0]}</text></g>);})}
+      {apps.map(a=>{const ic=APPLIANCE_ICONS[a.typeId]||{color:'#888'};return(<g key={a.id}><circle cx={tx(a.x)} cy={ty(a.y)} r={18} fill={ic.color}/><g transform={`translate(${tx(a.x)-10},${ty(a.y)-10})`}>{ApplianceIconGlyphs(a.typeId)}</g><text x={tx(a.x)} y={ty(a.y)+30} textAnchor="middle" fontSize={8} fontWeight={700} fill="#666">{labelOf(a).split(" ")[0]}</text></g>);})}
       <polygon points={`${tx(METER_POS.x)},${ty(METER_POS.y)-17} ${tx(METER_POS.x)+14},${ty(METER_POS.y)-8} ${tx(METER_POS.x)+14},${ty(METER_POS.y)+8} ${tx(METER_POS.x)},${ty(METER_POS.y)+17} ${tx(METER_POS.x)-14},${ty(METER_POS.y)+8} ${tx(METER_POS.x)-14},${ty(METER_POS.y)-8}`} fill="#E8472A"/>
       <text x={tx(METER_POS.x)} y={ty(METER_POS.y)+2} textAnchor="middle" fontSize={7} fontWeight={800} fill="white">METER</text>
     </svg>
@@ -451,7 +454,42 @@ function ClientDiagram({segs,apps}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function GasQuoter() {
+// Error boundary — keeps a single render error from white-screening the whole app
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { console.error("GasQuoter render error:", err, info); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div style={{fontFamily:"'DM Sans',sans-serif",minHeight:"100vh",background:"#FAF6F1",
+          color:"#2D2D2D",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div style={{maxWidth:420,textAlign:"center",background:"white",borderRadius:14,
+            padding:"32px 28px",border:"1px solid #ede6dc",boxShadow:"0 2px 12px rgba(0,0,0,.06)"}}>
+            <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
+            <div style={{fontWeight:800,fontSize:18,marginBottom:8}}>Something went wrong</div>
+            <div style={{fontSize:13,color:"#777",lineHeight:1.6,marginBottom:20}}>
+              The app hit an unexpected error. Your saved layout is kept — reloading usually fixes it.
+              If it keeps happening, use Start Fresh to clear the saved layout.
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={() => location.reload()} style={{background:"#E8472A",color:"white",
+                border:"none",padding:"10px 20px",borderRadius:8,fontWeight:700,fontSize:13,
+                cursor:"pointer",fontFamily:"inherit"}}>Reload</button>
+              <button onClick={() => { try { Object.keys(localStorage).filter(k=>/^chk_gq/.test(k)).forEach(k=>localStorage.removeItem(k)); } catch(e){} location.reload(); }}
+                style={{background:"transparent",border:"1.5px solid #e5dfd6",color:"#555",
+                padding:"10px 20px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",
+                fontFamily:"inherit"}}>Start Fresh</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function GasQuoterInner() {
   // localStorage helpers
   const load = (key, fallback) => {
     try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -509,7 +547,7 @@ export default function GasQuoter() {
       localStorage.setItem('chk_gq_q',      JSON.stringify(q));
       localStorage.setItem('chk_gq_cfg',    JSON.stringify(cfg));
       localStorage.setItem('chk_gq_margin', String(margin));
-      localStorage.setItem('chk_gq_step',   step);
+      localStorage.setItem('chk_gq_step',   JSON.stringify(step));
     } catch(e) {}
   }, [segs, apps, q, cfg, margin, step]);
 
@@ -733,7 +771,7 @@ export default function GasQuoter() {
     items.push(`Run new pipework to ${totalApps} appliance${totalApps!==1?"s":""}`);
     const tl = segs.reduce((s,g)=>s+(g.length||0),0);
     if (tl>0) items.push(`Approx. ${tl}m total pipe run`);
-    appCounts.forEach(a => items.push(`${a.count>1?a.count+"× ":""}${a.label} — connect and commission`));
+    appCounts.forEach(a => items.push(`${a.count>1?a.count+"× ":""}${labelOf(a)} — connect and commission`));
     if (q.pens>0)  items.push(`${q.pens} wall/floor penetration${q.pens>1?"s":""}`);
     if (q.dig>0)   items.push(`Trenching and backfill — ${q.dig}m`);
     if (q.conc>0)  items.push(`Concrete cutting — ${q.conc}m`);
@@ -944,7 +982,7 @@ export default function GasQuoter() {
                         strokeWidth={tool==="erase"?2.5:1.5}/>
                       <circle cx={a.x} cy={a.y} r={16} fill={ic.color}/>
                       <g transform={`translate(${a.x-10},${a.y-10})`}>{ApplianceIconGlyphs(a.typeId)}</g>
-                      <text x={a.x} y={a.y+38} textAnchor="middle" fontSize={9} fontWeight={700} fill="#555">{a.label.split(" ")[0]}</text>
+                      <text x={a.x} y={a.y+38} textAnchor="middle" fontSize={9} fontWeight={700} fill="#555">{labelOf(a).split(" ")[0]}</text>
                       <text x={a.x} y={a.y+50} textAnchor="middle" fontSize={9} fill="#bbb">{a.mj} MJ/hr</text>
                     </g>
                   );
@@ -1137,7 +1175,7 @@ export default function GasQuoter() {
                     <div style={{fontSize:12,color:"#aaa",paddingLeft:8}}>Base (first {cfg.baseLabourMetres}m): {fmt(qr.labBase)}{qr.extraM>0&&` · ${qr.extraM.toFixed(1)}m × ${fmt(cfg.labourPerMetre)}/m = ${fmt(qr.labExtra)}`}</div>
                   </div>
                   <div className="rp"><span style={{fontWeight:600}}>Pipe materials (copper)</span><span style={{fontWeight:700}}>{fmt(qr.matCost)}</span></div>
-                  {apps.map(a=>(<div key={a.id} className="rp" style={{paddingLeft:16}}><span style={{display:"flex",alignItems:"center",gap:6,color:"#555"}}><ApplianceIcon typeId={a.typeId} size={20}/>{a.label}</span><span>{fmt(cfg.applianceCosts[a.typeId]||120)}</span></div>))}
+                  {apps.map(a=>(<div key={a.id} className="rp" style={{paddingLeft:16}}><span style={{display:"flex",alignItems:"center",gap:6,color:"#555"}}><ApplianceIcon typeId={a.typeId} size={20}/>{labelOf(a)}</span><span>{fmt(cfg.applianceCosts[a.typeId]||120)}</span></div>))}
                   {qr.metCost>0  && <div className="rp"><span style={{fontWeight:600}}>Meter connection + copper tail</span><span style={{fontWeight:700}}>{fmt(qr.metCost)}</span></div>}
                   {qr.penCost>0  && <div className="rp" style={{paddingLeft:16}}><span style={{color:"#555"}}>{q.pens} penetration{q.pens!==1?"s":""}</span><span>{fmt(qr.penCost)}</span></div>}
                   {qr.digCost>0  && <div className="rp" style={{paddingLeft:16}}><span style={{color:"#555"}}>Digging ({q.dig}m)</span><span>{fmt(qr.digCost)}</span></div>}
@@ -1415,5 +1453,14 @@ export default function GasQuoter() {
         </div>
       )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function GasQuoter() {
+  return (
+    <ErrorBoundary>
+      <GasQuoterInner />
+    </ErrorBoundary>
   );
 }

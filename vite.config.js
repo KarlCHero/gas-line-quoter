@@ -1,11 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [sveltekit()],
   server: {
-    // Fixed dev port so previews never collide with sibling apps (see checkhero-standards).
+    // Pinned port so previews never collide with other CheckHero apps (see STANDARDS.md).
     port: Number(process.env.PORT) || 5174,
-    strictPort: true,
-  },
-})
+    strictPort: true
+  }
+});

@@ -15,6 +15,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.path = '/index-cdn.html'
         return super().do_GET()
 
+    def end_headers(self):
+        # Never cache during dev — always serve the latest source
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        return super().end_headers()
+
     def log_message(self, fmt, *args):
         pass  # suppress per-request logs
 

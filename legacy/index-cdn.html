@@ -30,7 +30,7 @@
   <div id="root"></div>
 
   <script>
-    fetch('/checkhero-gas-quoter.jsx')
+    fetch('/checkhero-gas-quoter.jsx?v=' + Date.now(), { cache: 'no-store' })
       .then(r => r.text())
       .then(src => {
         // Replace ES module import with global React destructure
