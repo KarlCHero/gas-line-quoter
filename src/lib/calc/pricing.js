@@ -104,11 +104,13 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     (q.newMeter ? (cfg.meterHours || 0) : 0);
   const applianceMat = apps.reduce((s, a) => s + ((cfg.applianceMaterial && cfg.applianceMaterial[a.typeId]) || 0), 0);
   const meterMat = q.newMeter ? (cfg.meterMaterial || 0) : 0;
+  const cocCost = cfg.cocCost || 0;
   const siteWorks =
     (q.pens || 0) * (cfg.penetrationCost || 0) +
     (autoDig + (q.dig || 0)) * (cfg.diggingRate || 0) +
     (q.conc || 0) * (cfg.concreteCuttingRate || 0) +
-    (q.twoS ? (cfg.twoStoreyFlat || 0) : 0);
+    (q.twoS ? (cfg.twoStoreyFlat || 0) : 0) +
+    cocCost;
 
   // Copper DN per segment (used to size copper stubs in any scenario).
   const copperSizeById = {};
@@ -181,6 +183,7 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     digCost: (autoDig + (q.dig || 0)) * (cfg.diggingRate || 0),
     concCost: (q.conc || 0) * (cfg.concreteCuttingRate || 0),
     twoCost: q.twoS ? (cfg.twoStoreyFlat || 0) : 0,
+    cocCost,
     siteWorks,
     // PRIMARY = the recommended mix
     sized: mix.sized,

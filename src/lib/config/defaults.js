@@ -34,14 +34,16 @@ export const DEFAULT_CONFIG = {
   // Copper stub length (m) forced at each appliance connection and at every
   // outside→inside building entry (PE can't be exposed at the transition).
   copperStubM: 1,
-  // Gas-side connection material per appliance (isolation valve + flex/bayonet).
+  // Gas-side connection material per appliance (isolation valve + flex/bayonet + fittings). Ex-GST.
   applianceMaterial: {
     cooktop: 37,
     freestanding_cooker: 58,
     wall_heater: 25,
-    ducted_heater: 30,
-    storage_hws: 23,
-    instant_hws: 25
+    ducted_heater: 45,
+    storage_hws: 65,    // valve + flexi + adaptors; Rheem/Rinnai gas-side kit ~$55–90
+    instant_hws: 70,    // higher-flow fittings; slightly more than storage
+    bbq: 75,            // bayonet fitting + isolation valve + weatherhead
+    hydronic: 90,       // isolation valve + flexi + boiler adaptors
   },
   // Meter connection material (adaptor + copper tail + isolation valve).
   meterMaterial: 58,
@@ -52,6 +54,7 @@ export const DEFAULT_CONFIG = {
   diggingRate: 50, // $/m
   concreteCuttingRate: 70, // $/m
   twoStoreyFlat: 90,
+  cocCost: 120, // compliance certificate (COC) — mandatory every job
 
   margin: 40, // loaded → charge-out; applied to everything at the end
   companyName: 'CheckHero',

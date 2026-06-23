@@ -106,6 +106,7 @@
       <label class="inline">Digging<span class="dollar"><i>$</i><input type="number" value={cfg.diggingRate} oninput={numUpd('diggingRate')} /><em>/m</em></span></label>
       <label class="inline">Concrete cutting<span class="dollar"><i>$</i><input type="number" value={cfg.concreteCuttingRate} oninput={numUpd('concreteCuttingRate')} /><em>/m</em></span></label>
       <label class="inline">2-storey (flat)<span class="dollar"><i>$</i><input type="number" value={cfg.twoStoreyFlat} oninput={numUpd('twoStoreyFlat')} /></span></label>
+      <label class="inline">Compliance certificate (COC)<span class="dollar"><i>$</i><input type="number" value={cfg.cocCost} oninput={numUpd('cocCost')} /></span></label>
     </div>
 
     <div class="card">

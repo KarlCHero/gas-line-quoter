@@ -106,17 +106,16 @@
       {#if qr.peMat}<div class="rp indent"><span>PE pipe <span class="muted">· AS/NZS 4130</span></span><span>{fmt(qr.peMat)}</span></div>{/if}
       <div class="rp indent"><span>Appliance connections ({Q.apps.length})</span><span>{fmt(qr.applianceMat)}</span></div>
       {#if qr.meterMat}<div class="rp indent"><span>Meter connection</span><span>{fmt(qr.meterMat)}</span></div>{/if}
-      {#if qr.siteWorks}
-        <div class="rp section"><span>Site works</span><span>{fmt(qr.siteWorks)}</span></div>
-        {#if qr.penCost}<div class="rp indent"><span>{Q.q.pens} penetration{Q.q.pens > 1 ? 's' : ''}</span><span>{fmt(qr.penCost)}</span></div>{/if}
-        {#if qr.digCost}
-          {@const totalDig = (qr.autoDig || 0) + (Q.q.dig || 0)}
-          {@const digLabel = qr.autoDig && Q.q.dig ? `Digging (${totalDig}m — ${qr.autoDig}m buried + ${Q.q.dig}m extra)` : `Digging (${totalDig}m)`}
-          <div class="rp indent"><span>{digLabel}</span><span>{fmt(qr.digCost)}</span></div>
-        {/if}
-        {#if qr.concCost}<div class="rp indent"><span>Concrete cutting ({Q.q.conc}m)</span><span>{fmt(qr.concCost)}</span></div>{/if}
-        {#if qr.twoCost}<div class="rp indent"><span>2-storey allowance</span><span>{fmt(qr.twoCost)}</span></div>{/if}
+      <div class="rp section"><span>Site works</span><span>{fmt(qr.siteWorks)}</span></div>
+      {#if qr.penCost}<div class="rp indent"><span>{Q.q.pens} penetration{Q.q.pens > 1 ? 's' : ''}</span><span>{fmt(qr.penCost)}</span></div>{/if}
+      {#if qr.digCost}
+        {@const totalDig = (qr.autoDig || 0) + (Q.q.dig || 0)}
+        {@const digLabel = qr.autoDig && Q.q.dig ? `Digging (${totalDig}m — ${qr.autoDig}m buried + ${Q.q.dig}m extra)` : `Digging (${totalDig}m)`}
+        <div class="rp indent"><span>{digLabel}</span><span>{fmt(qr.digCost)}</span></div>
       {/if}
+      {#if qr.concCost}<div class="rp indent"><span>Concrete cutting ({Q.q.conc}m)</span><span>{fmt(qr.concCost)}</span></div>{/if}
+      {#if qr.twoCost}<div class="rp indent"><span>2-storey allowance</span><span>{fmt(qr.twoCost)}</span></div>{/if}
+      <div class="rp indent"><span>Compliance certificate (COC)</span><span>{fmt(qr.cocCost)}</span></div>
       <div class="rp total-line"><span>Cost (before margin)</span><span>{fmt(qr.subtotal)}</span></div>
       <div class="rp dim"><span>Margin ({Q.margin}%)</span><span>{fmt(qr.marginAmt)}</span></div>
       <div class="grand">

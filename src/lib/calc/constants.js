@@ -4,13 +4,17 @@ export const GRID = 40;
 export const METER_POS = { x: 120, y: 280 };
 
 /** Natural-gas appliance demand ratings (MJ/hr). NG only. */
+// MJ/hr = appliance nameplate max gas input (AS/NZS 5601.1 pipe-sizing basis).
+// Sources: Rheem/Rinnai AU datasheets, Westinghouse/F&P specs, ATCO TN09 examples.
 export const APPLIANCE_TYPES = [
-  { id: 'cooktop', label: 'Cooktop', mj: 30 },
-  { id: 'freestanding_cooker', label: 'Freestanding Cooker', mj: 50 },
-  { id: 'wall_heater', label: 'Wall / Space Heater', mj: 25 },
-  { id: 'ducted_heater', label: 'Ducted Heater', mj: 120 },
-  { id: 'storage_hws', label: 'Storage HWS', mj: 200 },
-  { id: 'instant_hws', label: 'Instantaneous HWS', mj: 200 }
+  { id: 'cooktop',            label: 'Cooktop (4-burner)',          mj: 38  }, // Westinghouse ~43, F&P ~32–36; 38 conservative mid
+  { id: 'freestanding_cooker',label: 'Freestanding Cooker',         mj: 55  }, // 5-burner ~50, 6-burner ~53; 55 covers most ranges
+  { id: 'wall_heater',        label: 'Wall / Space Heater',         mj: 25  }, // Rinnai 559FT = 23, 1005FT = 37; 25 covers common models
+  { id: 'ducted_heater',      label: 'Ducted Heater',               mj: 150 }, // residential systems 100–200+; 150 mid-range
+  { id: 'storage_hws',        label: 'Storage HWS',                 mj: 45  }, // Rheem 4-star = 27, Stellar = 42; 45 gives headroom
+  { id: 'instant_hws',        label: 'Instantaneous HWS',           mj: 200 }, // Rinnai B26 = 199; 200 correct
+  { id: 'bbq',                label: 'BBQ / Outdoor Bayonet',       mj: 68  }, // Beefeater 4-burner = 68; covers typical domestic BBQ
+  { id: 'hydronic',           label: 'Hydronic Boiler',             mj: 140 }, // Bosch 8300iW 35P = 138, Baxi 1.330 = 122; 140 covers 35 kW systems
 ];
 
 /** Per-DN colours for pipe rendering / size badges. */
@@ -52,7 +56,9 @@ export const APPLIANCE_ICONS = {
   wall_heater: { color: '#DC2626' },
   ducted_heater: { color: '#2563EB' },
   storage_hws: { color: '#0891B2' },
-  instant_hws: { color: '#059669' }
+  instant_hws: { color: '#059669' },
+  bbq: { color: '#D97706' },
+  hydronic: { color: '#7C3AED' }
 };
 
 /** Safe appliance label — never crashes on a missing/legacy label. */

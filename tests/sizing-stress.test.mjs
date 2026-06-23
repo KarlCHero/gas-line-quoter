@@ -259,7 +259,7 @@ function oPrice(sc, sized) {
   const copperMat = sized.reduce((s, x) => s + (x.length || 0) * (cfg.copperRates[x.size] || 0), 0) * (1 + (cfg.pipeWastePct || 0) / 100);
   const applianceMat = sc.apps.reduce((s, a) => s + ((cfg.applianceMaterial && cfg.applianceMaterial[a.typeId]) || 0), 0);
   const meter = q.newMeter ? (cfg.meterMaterial || 0) : 0;
-  const site = q.pens * cfg.penetrationCost + q.dig * cfg.diggingRate + q.conc * cfg.concreteCuttingRate + (q.twoS ? cfg.twoStoreyFlat : 0);
+  const site = q.pens * cfg.penetrationCost + q.dig * cfg.diggingRate + q.conc * cfg.concreteCuttingRate + (q.twoS ? cfg.twoStoreyFlat : 0) + (cfg.cocCost || 0);
   const subtotal = labour + copperMat + applianceMat + meter + site;
   return { subtotal, total: subtotal / (1 - Math.min(sc.margin, 99.9) / 100) };
 }
