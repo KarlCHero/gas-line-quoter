@@ -29,6 +29,8 @@ jobs:
         env:
           # Project site is served under /<repo>/ — must match the repo name.
           BASE_PATH: /gas-line-quoter
+          # Hide the back-end pricing/Settings sheet on the shared build.
+          PUBLIC_HIDE_SETTINGS: 'true'
         run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

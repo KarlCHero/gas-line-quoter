@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { env } from '$env/dynamic/public';
   import { quoteStore as Q } from '$lib/stores/quote.svelte.js';
   import { settings } from '$lib/stores/settings.svelte.js';
   import { auth } from '$lib/stores/auth.svelte.js';
@@ -13,12 +14,18 @@
 
   let tab = $state('main'); // main | client | trades | settings
 
+  // Hide the back-end pricing sheet (rates + margin config) on the shared/public
+  // build. Set PUBLIC_HIDE_SETTINGS=true at build time (the Pages workflow does);
+  // local dev leaves it unset so you keep full access. Pricing still works — the
+  // engine uses the baked-in defaults; only the editable rate sheet is hidden.
+  const hideSettings = env.PUBLIC_HIDE_SETTINGS === 'true';
+
   const tabs = [
     { id: 'main', icon: '🏠', label: 'Quote Tool' },
     { id: 'client', icon: '📄', label: 'Client Quote' },
     { id: 'trades', icon: '📋', label: 'Trades' },
     { id: 'settings', icon: '⚙️', label: 'Settings' }
-  ];
+  ].filter((t) => t.id !== 'settings' || !hideSettings);
   const steps = [
     { id: 'draw', label: 'Draw Layout' },
     { id: 'questionnaire', label: 'Job Details' },
@@ -78,7 +85,7 @@
       <ClientQuote onBack={() => (tab = 'main')} />
     {:else if tab === 'trades'}
       <TradesGuide onBack={() => (tab = 'main')} />
-    {:else}
+    {:else if tab === 'settings' && !hideSettings}
       <Settings />
     {/if}
 
