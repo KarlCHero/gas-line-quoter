@@ -10,6 +10,9 @@
   );
 
   const num = (v) => (v === '' ? 0 : Number(v) || 0);
+  const buriedM = $derived(
+    Q.segs.filter((s) => (s.location || 'internal') === 'buried').reduce((sum, s) => sum + (s.length || 0), 0)
+  );
 </script>
 
 <div class="wrap">
@@ -50,7 +53,8 @@
     <span class="lbl">Penetrations</span>
     <input type="number" min="0" value={Q.q.pens} oninput={(e) => Q.setQ({ pens: num(e.currentTarget.value) })} />
 
-    <span class="lbl">Digging (metres)</span>
+    <span class="lbl">Extra digging beyond buried runs (metres)</span>
+    {#if buriedM > 0}<div class="help">{buriedM}m already included from buried segments.</div>{/if}
     <input type="number" min="0" value={Q.q.dig} oninput={(e) => Q.setQ({ dig: num(e.currentTarget.value) })} />
 
     <span class="lbl">Concrete Cutting (metres)</span>

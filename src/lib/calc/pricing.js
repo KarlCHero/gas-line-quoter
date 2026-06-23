@@ -82,6 +82,7 @@ function segMaterial(seg, mode, peLocations, peBand) {
 export function calcQuote(segs, apps, q, cfg, margin) {
   const totalLen = segs.reduce((s, g) => s + (g.length || 0), 0);
   if (!totalLen || !apps.length) return null;
+  const autoDig = segs.filter((s) => locOf(s).id === 'buried').reduce((sum, s) => sum + (s.length || 0), 0);
   const { flows, longest } = analyse(segs, apps);
   const L = longest || 1;
   const band = selectBand(q.pressure);
@@ -105,7 +106,7 @@ export function calcQuote(segs, apps, q, cfg, margin) {
   const meterMat = q.newMeter ? (cfg.meterMaterial || 0) : 0;
   const siteWorks =
     (q.pens || 0) * (cfg.penetrationCost || 0) +
-    (q.dig || 0) * (cfg.diggingRate || 0) +
+    (autoDig + (q.dig || 0)) * (cfg.diggingRate || 0) +
     (q.conc || 0) * (cfg.concreteCuttingRate || 0) +
     (q.twoS ? (cfg.twoStoreyFlat || 0) : 0);
 
@@ -175,8 +176,9 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     peBandId: peBand ? peBand.id : null,
     // labour / site (shared base + mix transitions)
     rate, labourHours: mix.labourHours, labourCost: mix.labourCost, applianceMat, meterMat,
+    autoDig,
     penCost: (q.pens || 0) * (cfg.penetrationCost || 0),
-    digCost: (q.dig || 0) * (cfg.diggingRate || 0),
+    digCost: (autoDig + (q.dig || 0)) * (cfg.diggingRate || 0),
     concCost: (q.conc || 0) * (cfg.concreteCuttingRate || 0),
     twoCost: q.twoS ? (cfg.twoStoreyFlat || 0) : 0,
     siteWorks,
@@ -209,7 +211,8 @@ export function buildScope(segs, apps, q, appCounts, cfg = {}) {
   if (peCount > 0) items.push(`${peCount} concealed run${peCount > 1 ? 's' : ''} — PE (AS/NZS 4130), copper stubs at connections`);
   appCounts.forEach((a) => items.push(`${a.count > 1 ? a.count + '× ' : ''}${labelOf(a)} — connect and commission`));
   if (q.pens > 0) items.push(`${q.pens} wall/floor penetration${q.pens > 1 ? 's' : ''}`);
-  if (q.dig > 0) items.push(`Trenching and backfill — ${q.dig}m`);
+  const scopeDig = segs.filter((s) => locOf(s).id === 'buried').reduce((sum, s) => sum + (s.length || 0), 0) + (q.dig || 0);
+  if (scopeDig > 0) items.push(`Trenching and backfill — ${scopeDig}m`);
   if (q.conc > 0) items.push(`Concrete cutting — ${q.conc}m`);
   if (q.twoS) items.push('Multi-storey access included');
   items.push('Pressure test to AS/NZS 5601.1');

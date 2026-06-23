@@ -109,7 +109,11 @@
       {#if qr.siteWorks}
         <div class="rp section"><span>Site works</span><span>{fmt(qr.siteWorks)}</span></div>
         {#if qr.penCost}<div class="rp indent"><span>{Q.q.pens} penetration{Q.q.pens > 1 ? 's' : ''}</span><span>{fmt(qr.penCost)}</span></div>{/if}
-        {#if qr.digCost}<div class="rp indent"><span>Digging ({Q.q.dig}m)</span><span>{fmt(qr.digCost)}</span></div>{/if}
+        {#if qr.digCost}
+          {@const totalDig = (qr.autoDig || 0) + (Q.q.dig || 0)}
+          {@const digLabel = qr.autoDig && Q.q.dig ? `Digging (${totalDig}m — ${qr.autoDig}m buried + ${Q.q.dig}m extra)` : `Digging (${totalDig}m)`}
+          <div class="rp indent"><span>{digLabel}</span><span>{fmt(qr.digCost)}</span></div>
+        {/if}
         {#if qr.concCost}<div class="rp indent"><span>Concrete cutting ({Q.q.conc}m)</span><span>{fmt(qr.concCost)}</span></div>{/if}
         {#if qr.twoCost}<div class="rp indent"><span>2-storey allowance</span><span>{fmt(qr.twoCost)}</span></div>{/if}
       {/if}
