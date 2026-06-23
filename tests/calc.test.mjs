@@ -179,10 +179,13 @@ const segOf = (qr, id) => qr.sized.find((s) => s.id === id);
     { id: 's2', x1: 440, y1: 280, x2: 440, y2: 160, length: 8, location: 'buried' }
   ];
   const ma = [{ id: 'a1', typeId: 'cooktop', x: 440, y: 160, mj: 30, label: 'Cooktop' }];
+  // Stub geometry is a property of the mix scenario; assert on it directly (the
+  // recommended primary may be all-copper here, since on this short run the stubs
+  // + transition labour make the mix dearer).
   const qr = calcQuote(ms, ma, mixJob(2.0), DEFAULT_CONFIG, 40);
-  ok('entry: external seg stays copper', segOf(qr, 's1').material === 'copper');
-  ok('entry: 2 stubs (appliance + building entry)', qr.stubs.count === 2);
-  ok('entry: stub metres = 2 × copperStubM', approx(qr.stubs.metres, 2 * DEFAULT_CONFIG.copperStubM));
+  ok('entry: external seg stays copper', segOf(qr.scenarios.mix, 's1').material === 'copper');
+  ok('entry: mix has 2 stubs (appliance + building entry)', qr.scenarios.mix.stubs.count === 2);
+  ok('entry: stub metres = 2 × copperStubM', approx(qr.scenarios.mix.stubs.metres, 2 * DEFAULT_CONFIG.copperStubM));
 }
 {
   // Below 1.5 kPa the standard omits PE → mix must fall back to all copper.

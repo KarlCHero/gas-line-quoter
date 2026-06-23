@@ -56,7 +56,7 @@
           {/each}
         </tbody>
       </table>
-      <div class="tablenote">Sized per AS/NZS 5601.1:2013 Appendix F — copper (AS 1432 Type B, Table {qr.band.id}){#if qr.peBandId} and PE (AS/NZS 4130 SDR 11, Table {qr.peBandId}){/if}, longest-run method. {#if qr.stubs.count}Includes {qr.stubs.count} copper stub{qr.stubs.count > 1 ? 's' : ''} ({qr.stubs.metres} m) at appliance/entry transitions.{/if} Final sizing is the gasfitter's COC responsibility.</div>
+      <div class="tablenote">Sized per AS/NZS 5601.1:2013 Appendix F — copper (AS 1432 Type B, Table {qr.band.id}){#if qr.hasPE} and PE (AS/NZS 4130 SDR 11, Table {qr.peBandId}){/if}, longest-run method. {#if qr.stubs.count}Includes {qr.stubs.count} copper stub{qr.stubs.count > 1 ? 's' : ''} ({qr.stubs.metres} m) at appliance/entry transitions.{/if} Final sizing is the gasfitter's COC responsibility.</div>
       {#if qr.anyOversized || qr.anyOverCapacity}
         <div class="disclaimer">
           {#if qr.anyOverCapacity}<strong>⚠ Capacity exceeded:</strong> one or more runs exceed DN50 at this length/pressure — split the run, raise supply pressure, or seek design advice.<br />{/if}
@@ -69,14 +69,16 @@
       {@const sc = qr.scenarios}
       <div class="card">
         <h3>Copper vs PE — Material Strategy</h3>
-        {#if qr.hasPE}
-          <div class="savebar">Optimised mix saves <strong>{fmt(qr.saving)}</strong> vs all-copper ({fmt(qr.total * 1.1)} inc GST quoted).</div>
+        {#if qr.recommended === 'mix'}
+          <div class="savebar">PE mix saves <strong>{fmt(qr.saving)}</strong> vs all-copper — recommended.</div>
+        {:else if sc.mix.peM > 0}
+          <div class="savebar muted-bar">All-copper is cheaper here — the PE mix would cost <strong>{fmt(qr.saving)}</strong> more (copper stub + transition labour outweigh the short PE run). Copper recommended.</div>
         {:else}
-          <div class="savebar muted-bar">No PE-eligible runs marked. Tag under-house / in-roof / buried runs in the layout to use PE and cut material cost.</div>
+          <div class="savebar muted-bar">No PE-eligible runs marked. Tag under-house / in-roof / buried runs in the layout to test PE against copper.</div>
         {/if}
         <div class="scen">
-          <div class="sc"><div class="scl">All copper</div><div class="scv">{fmt(sc.copper.total)}</div></div>
-          <div class="sc reco"><div class="scl">Optimised mix ★</div><div class="scv">{fmt(sc.mix.total)}</div><div class="scn">{sc.mix.peM}m PE · {sc.mix.copperM.toFixed(0)}m Cu</div></div>
+          <div class="sc" class:reco={qr.recommended === 'copper'}><div class="scl">All copper{#if qr.recommended === 'copper'} ★{/if}</div><div class="scv">{fmt(sc.copper.total)}</div></div>
+          <div class="sc" class:reco={qr.recommended === 'mix'}><div class="scl">Optimised mix{#if qr.recommended === 'mix'} ★{/if}</div><div class="scv">{fmt(sc.mix.total)}</div><div class="scn">{sc.mix.peM}m PE · {sc.mix.copperM.toFixed(0)}m Cu</div></div>
           <div class="sc"><div class="scl">Max PE</div><div class="scv">{fmt(sc.maxPE.total)}</div><div class="scn">best-case routing</div></div>
         </div>
         <div class="tablenote">PE (AS/NZS 4130) only where the run location allows; external &amp; in-wall runs stay copper, plus 1 m copper stubs at appliances and outside→inside entries. Ex GST.</div>

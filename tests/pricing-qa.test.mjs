@@ -202,11 +202,19 @@ function verify(n) {
       `${qr.total.toFixed(2)} vs ${(qr.subtotal * 4 / 3).toFixed(2)}`);
   }
 
-  // ── saving = copper.total − mix.total ──
-  check(`${tag} saving`, near(qr.saving, qr.scenarios.copper.total - qr.scenarios.mix.total),
+  // ── saving = recommended option's advantage over the other (never negative) ──
+  check(`${tag} saving`, near(qr.saving, Math.abs(qr.scenarios.copper.total - qr.scenarios.mix.total)),
     `${qr.saving}`);
+  check(`${tag} saving >= 0`, qr.saving >= -1e-9, `${qr.saving}`);
 
-  // ── hasPE iff mix.peM > 0 ──
+  // ── recommended = the cheaper scenario; primary total matches it ──
+  const recScn = qr.recommended === 'mix' ? qr.scenarios.mix : qr.scenarios.copper;
+  check(`${tag} recommended is cheaper`,
+    recScn.total <= qr.scenarios[qr.recommended === 'mix' ? 'copper' : 'mix'].total + 1e-9,
+    `rec=${qr.recommended}`);
+  check(`${tag} primary total = recommended`, near(qr.total, recScn.total), `${qr.total} vs ${recScn.total}`);
+
+  // ── hasPE iff the recommended scenario uses PE ──
   check(`${tag} hasPE`, qr.hasPE === (qr.peMat > 0));
 
   // ── No PE when pressure < 1.5 ──
@@ -400,7 +408,7 @@ const baseQ = (p = 2, extra = {}) => ({
   if (qr) {
     check('F9 band correct', qr.band.id === 'F9', qr.band.id);
     check('F9 peBandId=F22', qr.peBandId === 'F22', `peBandId=${qr.peBandId}`);
-    check('F9 PE in mix', qr.hasPE);
+    check('F9 PE in mix scenario', qr.scenarios.mix.peM > 0, `mix peM=${qr.scenarios.mix.peM}`);
   }
 }
 

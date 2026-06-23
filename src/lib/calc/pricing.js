@@ -173,14 +173,22 @@ export function calcQuote(segs, apps, q, cfg, margin) {
   const mix = priceScenario('mix');
   const maxPE = priceScenario('maxPE');
 
+  // Recommend whichever is genuinely cheaper. On short PE-eligible runs the
+  // copper stub + transition labour outweigh the PE pipe saving, so all-copper
+  // wins — recommend that rather than a "mix" that quietly costs more. Ties (incl.
+  // no PE-eligible segments) go to copper, the simpler install. `saving` is the
+  // recommended option's advantage over the other, so it's never negative.
+  const recMix = mix.total < copper.total;
+  const rec = recMix ? mix : copper;
+
   return {
     // analysis
     totalMJ, longest, totalLen, extraM,
     band: { id: band.id, dropKPa: band.dropKPa, supplyRange: band.supplyRange },
     peBandId: peBand ? peBand.id : null,
     allowDrop, minApp,
-    // labour / site (shared base + mix transitions)
-    rate, labourHours: mix.labourHours, labourCost: mix.labourCost, applianceMat, meterMat,
+    // labour / site (recommended scenario's base + transitions)
+    rate, labourHours: rec.labourHours, labourCost: rec.labourCost, applianceMat, meterMat,
     autoDig,
     penCost: (q.pens || 0) * (cfg.penetrationCost || 0),
     digCost: (autoDig + (q.dig || 0)) * (cfg.diggingRate || 0),
@@ -188,16 +196,17 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     twoCost: q.twoS ? (cfg.twoStoreyFlat || 0) : 0,
     cocCost,
     siteWorks,
-    // PRIMARY = the recommended mix
-    sized: mix.sized,
-    copperMat: mix.copperMat, peMat: mix.peMat, materialCost: mix.materialCost,
-    stubs: mix.stubs,
-    anyOversized: mix.anyOversized, anyOverCapacity: mix.anyOverCapacity,
-    subtotal: mix.subtotal, marginAmt: mix.marginAmt, total: mix.total,
+    // PRIMARY = the recommended (cheaper) scenario
+    sized: rec.sized,
+    copperMat: rec.copperMat, peMat: rec.peMat, materialCost: rec.materialCost,
+    stubs: rec.stubs,
+    anyOversized: rec.anyOversized, anyOverCapacity: rec.anyOverCapacity,
+    subtotal: rec.subtotal, marginAmt: rec.marginAmt, total: rec.total,
     // comparison
     scenarios: { copper, mix, maxPE },
-    saving: copper.total - mix.total,
-    hasPE: mix.peM > 0
+    recommended: recMix ? 'mix' : 'copper',
+    saving: Math.abs(copper.total - mix.total),
+    hasPE: rec.peM > 0
   };
 }
 
