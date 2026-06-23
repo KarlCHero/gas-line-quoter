@@ -1,12 +1,15 @@
 <script>
   import { quoteStore as Q } from '$lib/stores/quote.svelte.js';
-  import { selectBand } from '$lib/calc/sizing.js';
+  import { settings } from '$lib/stores/settings.svelte.js';
+  import { selectBand, allowableDropKPa } from '$lib/calc/sizing.js';
 
-  const band = $derived(selectBand(Q.q.pressure));
+  const minApp = $derived(settings.cfg.minAppliancePressure ?? 1.13);
+  const band = $derived(selectBand(Q.q.pressure, minApp));
+  const drop = $derived(allowableDropKPa(Q.q.pressure, minApp));
   const pressureNote = $derived(
     Q.q.pressure < 1.5
-      ? { cls: 'caution', text: 'Low-pressure supply — sizing uses the conservative Table F6.' }
-      : { cls: 'ok', text: '✓ Supply within standard range.' }
+      ? { cls: 'caution', text: 'Low-pressure supply — little drop to spend, conservative sizing.' }
+      : { cls: 'ok', text: `✓ ${drop.toFixed(2)} kPa allowable drop (supply − ${minApp} kPa appliance min).` }
   );
 
   const num = (v) => (v === '' ? 0 : Number(v) || 0);
@@ -30,7 +33,7 @@
     <input class="narrow" type="number" step="0.05" min="1.1" max="10" value={Q.q.pressure}
       oninput={(e) => { const v = e.currentTarget.value; if (v === '') return; Q.setQ({ pressure: Math.max(1.1, Number(v) || 1.1) }); }} />
     <div class="pbox {pressureNote.cls}">
-      <div>Sizing table: <strong>{band.id}</strong> <span class="dim">({band.dropKPa} kPa design drop · supply {band.supplyRange} · AS/NZS 5601.1 App. F)</span></div>
+      <div>Sizing table: <strong>{band.id}</strong> <span class="dim">({band.dropKPa} kPa design drop · AS/NZS 5601.1 App. F)</span></div>
       <div class="pnote">{pressureNote.text}</div>
     </div>
   </div>

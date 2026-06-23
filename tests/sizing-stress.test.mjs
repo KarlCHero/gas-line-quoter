@@ -316,11 +316,11 @@ const baseQ = (p) => ({ addr: '', pressure: p, newMeter: false, pens: 0, dig: 0,
 {
   const segs = [{ id: 1, x1: 120, y1: 280, x2: 760, y2: 280, length: 40 }];
   const apps = [{ id: 1, typeId: 'storage_hws', mj: 200, x: 760, y: 280, label: 'H' }];
-  const lo = calcQuote(segs, apps, baseQ(1.6), DEFAULT_CONFIG, 20); // F7
-  const hi = calcQuote(segs, apps, baseQ(3.0), DEFAULT_CONFIG, 20); // F8
+  const lo = calcQuote(segs, apps, baseQ(1.6), DEFAULT_CONFIG, 20); // drop 0.47 → F7
+  const hi = calcQuote(segs, apps, baseQ(3.0), DEFAULT_CONFIG, 20); // drop 1.87 → F9
   ec('1.6 kPa uses F7', lo.band.id === 'F7');
-  ec('3.0 kPa uses F8', hi.band.id === 'F8');
-  ec('higher pressure never needs bigger pipe', hi.sized[0].size <= lo.sized[0].size, `F8 DN${hi.sized[0].size} vs F7 DN${lo.sized[0].size}`);
+  ec('3.0 kPa uses F9', hi.band.id === 'F9');
+  ec('higher pressure never needs bigger pipe', hi.sized[0].size <= lo.sized[0].size, `F9 DN${hi.sized[0].size} vs F7 DN${lo.sized[0].size}`);
 }
 // beyond-table run (300m) clamps to 200m row
 {

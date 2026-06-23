@@ -26,11 +26,12 @@ ok('F8 DN15 omitted @80m (excessive velocity)', F8.sizes[15][16] === null);
 const F7 = COPPER_BANDS.find((b) => b.id === 'F7');
 ok('F7 DN20 @30m = 71', F7.sizes[20][11] === 71);
 
-// ── Band selection by supply pressure ──
-ok('1.2 kPa → F6', selectBand(1.2).id === 'F6');
-ok('2.0 kPa → F7', selectBand(2.0).id === 'F7');
-ok('2.6 kPa → F7 (gap → lower band)', selectBand(2.6).id === 'F7');
-ok('2.75 kPa → F8', selectBand(2.75).id === 'F8');
+// ── Band selection by allowable drop (supply − 1.13 kPa appliance min) ──
+ok('1.2 kPa → F6 (drop 0.07 < 0.12 → conservative)', selectBand(1.2).id === 'F6');
+ok('1.5 kPa → F7 (drop 0.37 affords 0.25)', selectBand(1.5).id === 'F7');
+ok('2.0 kPa → F8 (drop 0.87 affords 0.75)', selectBand(2.0).id === 'F8');
+ok('2.6 kPa → F8 (drop 1.47 < 1.5)', selectBand(2.6).id === 'F8');
+ok('2.75 kPa → F9 (drop 1.62 affords 1.5)', selectBand(2.75).id === 'F9');
 ok('6 kPa → F9', selectBand(6).id === 'F9');
 
 // ── Truly-independent data check: literal cells hand-read from the PDF ──
@@ -83,17 +84,17 @@ for (const P of [2.0, 2.75]) {
   const labour = hrs * C.labourRate;
   const copperMat = qr.sized.reduce((t, s) => t + s.length * C.copperRates[s.size], 0) * (1 + C.pipeWastePct / 100);
   const applianceMat = C.applianceMaterial.storage_hws + C.applianceMaterial.cooktop;
-  const sub = labour + copperMat + applianceMat + C.meterMaterial;
+  const sub = labour + copperMat + applianceMat + C.meterMaterial + C.cocCost;
   ok(`tee P=${P} subtotal matches formula`, approx(qr.subtotal, sub));
   ok(`tee P=${P} total = subtotal/0.8`, approx(qr.total, sub / 0.8));
 }
 
 // ── Borderline oversize: flow just under a size's capacity → step up + flag ──
 {
-  // DN15 @30m F8 = 39 MJ/h; 38 is 97% of capacity → borderline → DN20, oversized.
+  // P=2.0 → F8. DN15 @30m F8 = 39 MJ/h; 38 is 97% of capacity → borderline → DN20, oversized.
   const s = [{ id: 1, x1: 120, y1: 280, x2: 1320, y2: 280, length: 30 }];
   const a = [{ id: 1, typeId: 'x', mj: 38, x: 1320, y: 280, label: 'x' }];
-  const qr = calcQuote(s, a, { pressure: 2.75, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false }, DEFAULT_CONFIG, 20);
+  const qr = calcQuote(s, a, { pressure: 2.0, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false }, DEFAULT_CONFIG, 20);
   ok('borderline 38MJ/30m/F8 → DN20 oversized', qr.sized[0].size === 20 && qr.sized[0].oversized === true);
 }
 
@@ -118,9 +119,9 @@ for (const [b, dn, len, mj] of PE_PDF_CELLS) {
 
 // PE band selection — no PE table below 1.5 kPa (must force copper), gap → lower.
 ok('PE 1.2 kPa → null (no PE table)', selectPEBand(1.2) === null);
-ok('PE 1.5 kPa → F20', selectPEBand(1.5).id === 'F20');
-ok('PE 2.6 kPa → F20 (gap → lower)', selectPEBand(2.6).id === 'F20');
-ok('PE 2.75 kPa → F21', selectPEBand(2.75).id === 'F21');
+ok('PE 1.5 kPa → F20 (drop 0.37 affords 0.25)', selectPEBand(1.5).id === 'F20');
+ok('PE 2.6 kPa → F21 (drop 1.47 affords 0.75)', selectPEBand(2.6).id === 'F21');
+ok('PE 2.75 kPa → F22 (drop 1.62 affords 1.5)', selectPEBand(2.75).id === 'F22');
 ok('PE 6 kPa → F22', selectPEBand(6).id === 'F22');
 
 // PE availability / omitted cells (small DN drops out at long runs; DN160 at short).
@@ -156,7 +157,10 @@ const segOf = (qr, id) => qr.sized.find((s) => s.id === id);
     { id: 's2', x1: 440, y1: 280, x2: 440, y2: 160, length: 8, location: 'buried' }
   ];
   const ma = [{ id: 'a1', typeId: 'cooktop', x: 440, y: 160, mj: 30, label: 'Cooktop' }];
-  const qr = calcQuote(ms, ma, mixJob(2.0), DEFAULT_CONFIG, 40);
+  // 1.6 kPa (F7): copper stays DN20 on this short buried branch, so swapping to
+  // PE clearly out-saves the 1-stub transition labour. (At higher supply the
+  // bigger allowable drop sizes copper down to DN15 and PE no longer pays here.)
+  const qr = calcQuote(ms, ma, mixJob(1.6), DEFAULT_CONFIG, 40);
   ok('mix: internal seg → copper', segOf(qr, 's1').material === 'copper');
   ok('mix: buried seg → PE', segOf(qr, 's2').material === 'pe');
   ok('mix: PE DN comes from PE_SIZES', PE_SIZES.includes(segOf(qr, 's2').size));

@@ -8,23 +8,30 @@
 import { COPPER_BANDS, PE_BANDS, RUN_LENGTHS, PE_LENGTHS } from '../src/lib/calc/tables.js';
 import { CU_SIZES, PE_SIZES } from '../src/lib/calc/sizing.js';
 
-const byId = (id) => COPPER_BANDS.find((b) => b.id === id);
-const byIdPE = (id) => PE_BANDS.find((b) => b.id === id);
+/** Min appliance inlet pressure (kPa) — mirrors sizing.js / DEFAULT_CONFIG default. */
+const MIN_APP = 1.13;
 
-/** Copper band selection (independent of selectBand): lower band wins in gaps. */
-export function oBand(P) {
-  if (P < 1.5) return byId('F6');
-  if (P < 2.75) return byId('F7');
-  if (P < 5) return byId('F8');
-  return byId('F9');
+/**
+ * Band selection (independent of sizing.js): the largest-design-drop band whose
+ * dropKPa the allowable drop (supply − min appliance) can afford; else the
+ * smallest. Bands are ascending by dropKPa in tables.js.
+ */
+function oPick(bands, P, minApp) {
+  const drop = Math.max(0, P - minApp);
+  let chosen = null;
+  for (const b of bands) if (b.dropKPa <= drop) chosen = b;
+  return chosen || bands[0];
+}
+
+/** Copper band selection. */
+export function oBand(P, minApp = MIN_APP) {
+  return oPick(COPPER_BANDS, P, minApp);
 }
 
 /** PE band selection — null below 1.5 kPa (standard omits PE there → use copper). */
-export function oPEBand(P) {
-  if (P < 1.5) return null;
-  if (P < 2.75) return byIdPE('F20');
-  if (P < 5) return byIdPE('F21');
-  return byIdPE('F22');
+export function oPEBand(P, minApp = MIN_APP) {
+  if (P < PE_BANDS[0].supplyMin) return null;
+  return oPick(PE_BANDS, P, minApp);
 }
 
 /**
@@ -75,12 +82,12 @@ function oSizeIn(flow, runLen, band, sizes, lengths, headroom) {
 }
 
 /** Full copper size decision incl. borderline step-up. {size, oversized, overCapacity}. */
-export function oSize(flow, runLen, P, headroom = 0.1) {
+export function oSize(flow, runLen, P, headroom = 0.05) {
   return oSizeIn(flow, runLen, oBand(P), CU_SIZES, RUN_LENGTHS, headroom);
 }
 
 /** Full PE size decision, or null if PE is not usable at this supply pressure. */
-export function oPESize(flow, runLen, P, headroom = 0.1) {
+export function oPESize(flow, runLen, P, headroom = 0.05) {
   const band = oPEBand(P);
   if (!band) return null;
   return oSizeIn(flow, runLen, band, PE_SIZES, PE_LENGTHS, headroom);

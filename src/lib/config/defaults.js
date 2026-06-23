@@ -56,6 +56,13 @@ export const DEFAULT_CONFIG = {
   twoStoreyFlat: 90,
   cocCost: 120, // compliance certificate (COC) — mandatory every job
 
+  // ── SIZING — design basis for AS/NZS 5601 pipe sizing ──
+  // Allowable pressure drop = supply pressure − this. NG appliances are rated at
+  // a 1.13 kPa nominal inlet; the tool sizes to the largest design-drop table the
+  // available pressure can afford. Lower this only if you size to a tighter
+  // appliance minimum (more aggressive — smaller pipe).
+  minAppliancePressure: 1.13, // kPa min appliance inlet
+
   margin: 40, // loaded → charge-out; applied to everything at the end
   companyName: 'CheckHero',
   companyPhone: '(03) 9000 0423',

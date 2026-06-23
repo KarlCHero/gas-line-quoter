@@ -32,7 +32,8 @@
       <h3>Pipe Sizing — AS/NZS 5601 Table {qr.band.id}</h3>
       <div class="stats">
         <div class="stat"><span class="lbl">Supply Pressure</span><div class="v">{Q.q.pressure} kPa</div></div>
-        <div class="stat"><span class="lbl">Design Table</span><div class="v">{qr.band.id} · {qr.band.dropKPa} kPa</div></div>
+        <div class="stat"><span class="lbl">Design Table</span><div class="v">{qr.band.id} · {qr.band.dropKPa} kPa drop</div></div>
+        <div class="stat"><span class="lbl">Allowable Drop</span><div class="v">{qr.allowDrop.toFixed(2)} kPa</div></div>
         <div class="stat"><span class="lbl">Longest Run</span><div class="v">{qr.longest.toFixed(1)} m</div></div>
         <div class="stat"><span class="lbl">Total Demand</span><div class="v">{qr.totalMJ} MJ/hr</div></div>
       </div>
@@ -59,7 +60,7 @@
       {#if qr.anyOversized || qr.anyOverCapacity}
         <div class="disclaimer">
           {#if qr.anyOverCapacity}<strong>⚠ Capacity exceeded:</strong> one or more runs exceed DN50 at this length/pressure — split the run, raise supply pressure, or seek design advice.<br />{/if}
-          {#if qr.anyOversized}<strong>↑ Oversized sections:</strong> some runs were stepped up a size because they were borderline (within 10% of capacity), giving a safety margin for fittings and future load.{/if}
+          {#if qr.anyOversized}<strong>↑ Oversized sections:</strong> some runs were stepped up a size because they were borderline (within 5% of capacity), giving a safety margin for fittings and future load.{/if}
         </div>
       {/if}
     </div>

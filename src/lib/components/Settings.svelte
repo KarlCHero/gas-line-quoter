@@ -110,6 +110,12 @@
     </div>
 
     <div class="card">
+      <h3>📐 Sizing basis</h3>
+      <label class="inline">Min appliance inlet pressure<span class="dollar"><input type="number" step="0.01" value={cfg.minAppliancePressure} oninput={numUpd('minAppliancePressure')} /><em>kPa</em></span></label>
+      <div class="fieldnote">Allowable drop = supply − this. Sizes to the largest design-drop table the pressure affords. NG nominal is 1.13 kPa; lower it to size tighter.</div>
+    </div>
+
+    <div class="card">
       <h3>📈 Margin</h3>
       <label class="inline">Default margin<span class="dollar"><input type="number" value={cfg.margin} oninput={numUpd('margin')} /><em>%</em></span></label>
       <div class="fieldnote">Applied once at the end to everything (labour + materials). {cfg.margin}% turns ${cfg.labourRate} loaded into ${cfg.margin < 100 ? (cfg.labourRate / (1 - cfg.margin / 100)).toFixed(0) : '—'} charge-out.</div>

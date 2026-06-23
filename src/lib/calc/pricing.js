@@ -29,7 +29,7 @@
  * not sized by the longhand pressure-drop summation method — fine for a quote;
  * the gasfitter performs the final AS/NZS 5601 COC sizing.
  */
-import { analyse, findSize, selectBand, selectPEBand } from './sizing.js';
+import { analyse, findSize, selectBand, selectPEBand, allowableDropKPa } from './sizing.js';
 import { labelOf, locOf, GRID } from './constants.js';
 
 /** Geometry the mix costing needs: appliance→branch segment, and entry nodes. */
@@ -85,8 +85,10 @@ export function calcQuote(segs, apps, q, cfg, margin) {
   const autoDig = segs.filter((s) => locOf(s).id === 'buried').reduce((sum, s) => sum + (s.length || 0), 0);
   const { flows, longest } = analyse(segs, apps);
   const L = longest || 1;
-  const band = selectBand(q.pressure);
-  const peBand = selectPEBand(q.pressure);
+  const minApp = cfg.minAppliancePressure;
+  const allowDrop = allowableDropKPa(q.pressure, minApp);
+  const band = selectBand(q.pressure, minApp);
+  const peBand = selectPEBand(q.pressure, minApp);
   const peLocations = cfg.peLocations || [];
   const totalMJ = apps.reduce((s, a) => s + a.mj, 0);
   const flowOf = (s) => flows[s.id] || totalMJ;
@@ -176,6 +178,7 @@ export function calcQuote(segs, apps, q, cfg, margin) {
     totalMJ, longest, totalLen, extraM,
     band: { id: band.id, dropKPa: band.dropKPa, supplyRange: band.supplyRange },
     peBandId: peBand ? peBand.id : null,
+    allowDrop, minApp,
     // labour / site (shared base + mix transitions)
     rate, labourHours: mix.labourHours, labourCost: mix.labourCost, applianceMat, meterMat,
     autoDig,

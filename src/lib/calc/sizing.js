@@ -1,9 +1,16 @@
 /**
  * AS/NZS 5601.1:2013 pipe sizing — Natural Gas, Copper AS1432 Type B.
- * Uses the standard's per-supply-pressure-band capacity tables (F6/F7/F8/F9,
- * Appendix F) directly — the design pressure drop is baked into each band, so
- * there is NO √ scaling. The band is selected from the meter supply pressure.
- * Cells the standard omits (excessive velocity) are null → that size is skipped.
+ * Uses the standard's capacity tables (F6/F7/F8/F9, Appendix F) directly — each
+ * table is for a specific design pressure DROP, so there is NO √ scaling.
+ *
+ * Table selection is by ALLOWABLE pressure drop, not raw supply pressure:
+ *   allowable drop = meter supply pressure − minimum appliance inlet pressure.
+ * The tool then uses the table with the LARGEST design drop it can afford (the
+ * smallest valid pipe). A high supply means more allowable drop, so the same job
+ * sizes smaller — exactly how a gasfitter takes credit for spare pressure.
+ * If supply barely exceeds the appliance minimum (little/no drop to spend) it
+ * falls back to the most conservative table. Cells the standard omits (excessive
+ * velocity) are null → that size is skipped.
  */
 import { GRID, METER_POS } from './constants.js';
 import { COPPER_BANDS, PE_BANDS, RUN_LENGTHS } from './tables.js';
@@ -11,18 +18,33 @@ import { COPPER_BANDS, PE_BANDS, RUN_LENGTHS } from './tables.js';
 export const CU_SIZES = [15, 20, 25, 32, 40, 50];
 export const PE_SIZES = [20, 25, 32, 40, 50, 63, 75, 90, 110, 160];
 
-/** Pick the copper band table for a supply pressure; gap pressures fall to the lower band. */
-export function selectBand(supplyKPa) {
-  return COPPER_BANDS.find((b) => supplyKPa < b.supplyMax) || COPPER_BANDS[COPPER_BANDS.length - 1];
+/** Minimum appliance inlet pressure (kPa) for NG — nominal 1.13 kPa data-plate. */
+export const MIN_APPLIANCE_KPA = 1.13;
+
+/** Allowable pressure drop (kPa) = supply − minimum appliance inlet pressure (never < 0). */
+export function allowableDropKPa(supplyKPa, minApplianceKPa = MIN_APPLIANCE_KPA) {
+  return Math.max(0, supplyKPa - minApplianceKPa);
+}
+
+/** Largest-drop band (bands ascending by dropKPa) affordable within `drop`; else the smallest. */
+function pickByDrop(bands, drop) {
+  let chosen = null;
+  for (const b of bands) if (b.dropKPa <= drop) chosen = b;
+  return chosen || bands[0];
+}
+
+/** Copper band for a supply pressure — chosen by the allowable drop it permits. */
+export function selectBand(supplyKPa, minApplianceKPa = MIN_APPLIANCE_KPA) {
+  return pickByDrop(COPPER_BANDS, allowableDropKPa(supplyKPa, minApplianceKPa));
 }
 
 /**
- * Pick the PE (AS/NZS 4130) band for a supply pressure, or null if PE is not
- * usable — the standard omits PE below 1.5 kPa, so any lower supply forces copper.
+ * PE (AS/NZS 4130) band for a supply pressure, or null if PE is not usable —
+ * the standard omits PE below 1.5 kPa, so any lower supply forces copper.
  */
-export function selectPEBand(supplyKPa) {
+export function selectPEBand(supplyKPa, minApplianceKPa = MIN_APPLIANCE_KPA) {
   if (supplyKPa < PE_BANDS[0].supplyMin) return null;
-  return PE_BANDS.find((b) => supplyKPa < b.supplyMax) || PE_BANDS[PE_BANDS.length - 1];
+  return pickByDrop(PE_BANDS, allowableDropKPa(supplyKPa, minApplianceKPa));
 }
 
 /**
@@ -60,7 +82,7 @@ export function capacityAt(band, dn, runLen) {
  * and we step up one size (flagged `oversized`). Returns
  * { size, capacity, oversized, overCapacity }.
  */
-export function findSize(flowMJ, runLen, band, headroom = 0.1) {
+export function findSize(flowMJ, runLen, band, headroom = 0.05) {
   // DN set comes from the band itself (copper 15-50, PE 20-160) — integer-keyed
   // maps iterate in ascending numeric order, so this is the smallest-first list.
   const SIZES = Object.keys(band.sizes).map(Number);
