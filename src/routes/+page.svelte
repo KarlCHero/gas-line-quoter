@@ -7,12 +7,10 @@
   import DrawStep from '$lib/components/DrawStep.svelte';
   import JobDetails from '$lib/components/JobDetails.svelte';
   import QuoteView from '$lib/components/QuoteView.svelte';
-  import ClientQuote from '$lib/components/ClientQuote.svelte';
-  import TradesGuide from '$lib/components/TradesGuide.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import Login from '$lib/components/Login.svelte';
 
-  let tab = $state('main'); // main | client | trades | settings
+  let tab = $state('main'); // main | settings
 
   // Hide the back-end pricing sheet (rates + margin config) on the shared/public
   // build. Set PUBLIC_HIDE_SETTINGS=true at build time (the Pages workflow does);
@@ -20,10 +18,10 @@
   // engine uses the baked-in defaults; only the editable rate sheet is hidden.
   const hideSettings = env.PUBLIC_HIDE_SETTINGS === 'true';
 
+  // Trades guide is parked for now; the client quote now lives at the bottom of
+  // the quote page (QuoteView "Quote notes"), so neither needs its own tab.
   const tabs = [
     { id: 'main', icon: '🏠', label: 'Quote Tool' },
-    { id: 'client', icon: '📄', label: 'Client Quote' },
-    { id: 'trades', icon: '📋', label: 'Trades' },
     { id: 'settings', icon: '⚙️', label: 'Settings' }
   ].filter((t) => t.id !== 'settings' || !hideSettings);
   const steps = [
@@ -80,11 +78,7 @@
     {#if tab === 'main'}
       {#if Q.step === 'draw'}<DrawStep />
       {:else if Q.step === 'questionnaire'}<JobDetails />
-      {:else}<QuoteView onClient={() => (tab = 'client')} />{/if}
-    {:else if tab === 'client'}
-      <ClientQuote onBack={() => (tab = 'main')} />
-    {:else if tab === 'trades'}
-      <TradesGuide onBack={() => (tab = 'main')} />
+      {:else}<QuoteView />{/if}
     {:else if tab === 'settings' && !hideSettings}
       <Settings />
     {/if}

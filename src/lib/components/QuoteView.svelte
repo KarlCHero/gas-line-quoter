@@ -3,12 +3,43 @@
   import { settings } from '$lib/stores/settings.svelte.js';
   import { PIPE_COLORS, fmt, labelOf } from '$lib/calc/constants.js';
 
-  let { onClient } = $props();
   const cfg = $derived(settings.cfg);
   const qr = $derived(Q.quote);
 
   const matRate = (s) => (s.material === 'pe' ? (cfg.peRates?.[s.size] ?? 0) : (cfg.copperRates?.[s.size] ?? 0));
   const segCost = (s) => (s.length ? s.length * matRate(s) : 0);
+
+  // Plain-text client description (sell price only — no cost/margin) for the
+  // notes block at the bottom of the quote, to paste into your own quote.
+  let copied = $state(false);
+  const description = $derived.by(() => {
+    if (!qr) return '';
+    const L = [];
+    L.push(`Gas Installation${Q.q.addr ? ` — ${Q.q.addr}` : ''}`);
+    L.push(`Natural Gas · Copper${qr.hasPE ? ' / PE' : ''} · AS/NZS 5601.1:2013`);
+    L.push('');
+    L.push('Scope of works:');
+    for (const item of Q.scope()) L.push(`• ${item}`);
+    L.push('');
+    const sizes = [...new Set(qr.sized.map((s) => `DN${s.size}`))].join(', ');
+    L.push(`Pipe sizing (Table ${qr.band.id}, ${Q.q.pressure} kPa supply): ${sizes}`);
+    L.push(`Total demand ${qr.totalMJ} MJ/hr over ${qr.longest.toFixed(1)} m longest run.`);
+    L.push('');
+    L.push(`Total: ${fmt(qr.total * 1.1)} inc GST (${fmt(qr.total)} ex GST + ${fmt(qr.total * 0.1)} GST).`);
+    L.push('Quote valid 30 days · 50% deposit to commence, balance on completion.');
+    L.push('Excludes wall/floor cutting & making good, and supply of appliances unless quoted.');
+    return L.join('\n');
+  });
+
+  async function copyDescription() {
+    try {
+      await navigator.clipboard.writeText(description);
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    } catch {
+      copied = false;
+    }
+  }
 </script>
 
 <div class="wrap">
@@ -25,7 +56,6 @@
         {#if Q.q.addr}<div class="addr">{Q.q.addr}</div>{/if}
         <div class="meta">Natural Gas · Copper{#if qr.hasPE} / PE{/if} · AS/NZS 5601 · Ex GST</div>
       </div>
-      <button class="ghost" onclick={onClient}>📄 Client Quote</button>
     </div>
 
     <div class="card">
@@ -132,6 +162,17 @@
       </div>
     </div>
 
+    <div class="card notes">
+      <div class="notes-head">
+        <div>
+          <h3>📝 Quote notes</h3>
+          <div class="notes-sub">Client-facing description — scope, sizing, total &amp; terms. Copy into your quote.</div>
+        </div>
+        <button class="copybtn" onclick={copyDescription}>{copied ? '✓ Copied' : '📋 Copy'}</button>
+      </div>
+      <textarea class="notes-text" readonly rows={description.split('\n').length + 1} value={description}></textarea>
+    </div>
+
     <div class="actions">
       <button class="ghost" onclick={() => Q.setStep('questionnaire')}>← Back</button>
       <button class="ghost" onclick={() => Q.newJob()}>🔄 New Job</button>
@@ -150,6 +191,13 @@
   .meta { font-size: 11px; color: #bbb; margin-top: 2px; }
   h3 { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
   .card { background: #fff; border: 1px solid var(--ch-gray-200); border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+  .notes { border-left: 3px solid var(--ch-orange); }
+  .notes-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .notes-sub { font-size: 12px; color: var(--ch-gray-500); margin-top: 3px; max-width: 460px; }
+  .copybtn { flex: none; background: var(--ch-orange); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .copybtn:hover { background: var(--ch-orange-d); }
+  .notes-text { width: 100%; border: 1px solid var(--ch-gray-200); border-radius: 10px; padding: 14px 16px; font: inherit; font-size: 13px; line-height: 1.7; color: var(--ch-text); background: var(--ch-cream); resize: vertical; }
+  .notes-text:focus { outline: none; border-color: var(--ch-orange); }
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
   .stat { background: var(--ch-cream); border-radius: 8px; padding: 10px 12px; }
   .lbl { font-size: 11px; font-weight: 700; color: var(--ch-gray-500); text-transform: uppercase; letter-spacing: 0.6px; }
