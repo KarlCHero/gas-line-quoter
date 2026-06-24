@@ -22,12 +22,6 @@
   <h2>Job Details</h2>
 
   <div class="card">
-    <span class="lbl">Property Address <span class="req">*</span></span>
-    <input type="text" placeholder="e.g. 42 Smith Street, Kew VIC 3101" value={Q.q.addr} oninput={(e) => Q.setQ({ addr: e.currentTarget.value })} />
-    <div class="help">Required for Client Quote PDF</div>
-  </div>
-
-  <div class="card">
     <h3>Gas Supply Pressure at Meter</h3>
     <span class="lbl">Meter Outlet Pressure (kPa)</span>
     <input class="narrow" type="number" step="0.05" min="1.1" max="10" value={Q.q.pressure}
@@ -77,7 +71,6 @@
   .card { background: #fff; border: 1px solid var(--ch-gray-200); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
   .lbl { font-size: 11px; font-weight: 700; color: var(--ch-gray-500); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin: 14px 0 6px; }
   .lbl:first-of-type { margin-top: 0; }
-  .req { color: var(--ch-orange); }
   input { width: 100%; border: 1.5px solid var(--ch-gray-300); border-radius: 8px; padding: 9px 12px; font: inherit; font-size: 14px; background: white; color: var(--ch-text); }
   input:focus { outline: none; border-color: var(--ch-orange); box-shadow: 0 0 0 3px rgba(255, 88, 21, 0.1); }
   input.narrow { max-width: 160px; }
