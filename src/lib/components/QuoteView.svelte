@@ -70,18 +70,20 @@
       <div class="card">
         <h3>Copper vs PE — Material Strategy</h3>
         {#if qr.recommended === 'mix'}
-          <div class="savebar">PE mix saves <strong>{fmt(qr.saving)}</strong> vs all-copper — recommended.</div>
+          <div class="savebar">PE saves <strong>{fmt(qr.saving)}</strong> vs all-copper — recommended.</div>
         {:else if sc.mix.peM > 0}
-          <div class="savebar muted-bar">All-copper is cheaper here — the PE mix would cost <strong>{fmt(qr.saving)}</strong> more (copper stub + transition labour outweigh the short PE run). Copper recommended.</div>
+          <div class="savebar muted-bar">All-copper is cheaper here — PE would cost <strong>{fmt(qr.saving)}</strong> more (copper stubs + transition labour outweigh the PE saving on these runs). Copper recommended.</div>
         {:else}
-          <div class="savebar muted-bar">No PE-eligible runs marked. Tag under-house / in-roof / buried runs in the layout to test PE against copper.</div>
+          <div class="savebar muted-bar">No PE-eligible runs — every run is external (copper only).</div>
         {/if}
         <div class="scen">
           <div class="sc" class:reco={qr.recommended === 'copper'}><div class="scl">All copper{#if qr.recommended === 'copper'} ★{/if}</div><div class="scv">{fmt(sc.copper.total)}</div></div>
-          <div class="sc" class:reco={qr.recommended === 'mix'}><div class="scl">Optimised mix{#if qr.recommended === 'mix'} ★{/if}</div><div class="scv">{fmt(sc.mix.total)}</div><div class="scn">{sc.mix.peM}m PE · {sc.mix.copperM.toFixed(0)}m Cu</div></div>
-          <div class="sc"><div class="scl">Max PE</div><div class="scv">{fmt(sc.maxPE.total)}</div><div class="scn">best-case routing</div></div>
+          <div class="sc" class:reco={qr.recommended === 'mix'}><div class="scl">PE where cheaper{#if qr.recommended === 'mix'} ★{/if}</div><div class="scv">{fmt(sc.mix.total)}</div><div class="scn">{sc.mix.peM}m PE · {sc.mix.copperM.toFixed(0)}m Cu</div></div>
+          {#if Math.abs(sc.maxPE.total - sc.mix.total) > 0.01}
+            <div class="sc"><div class="scl">Max PE</div><div class="scv">{fmt(sc.maxPE.total)}</div><div class="scn">best-case routing</div></div>
+          {/if}
         </div>
-        <div class="tablenote">PE (AS/NZS 4130) only where the run location allows; external &amp; in-wall runs stay copper, plus 1 m copper stubs at appliances and outside→inside entries. Ex GST.</div>
+        <div class="tablenote">PE (AS/NZS 4130) wherever it prices cheaper; external runs stay copper (UV), plus 1 m copper stubs at appliances and outside→inside entries. Ex GST.</div>
       </div>
     {/if}
 

@@ -25,6 +25,10 @@ import { DEFAULT_CONFIG } from '../src/lib/config/defaults.js';
 import { APPLIANCE_TYPES, GRID, METER_POS } from '../src/lib/calc/constants.js';
 import { oBand, oCapacity, oSize } from './_oracle.mjs';
 
+// This suite stresses COPPER band-table sizing against the copper oracle, so
+// force copper-only (peLocations: []). PE pricing is covered in pricing-qa.
+const CU_CFG = { ...DEFAULT_CONFIG, peLocations: [] };
+
 const N = Number(process.argv[2]) || 1000;
 
 // ── Seeded RNG ──
@@ -274,7 +278,7 @@ for (let n = 0; n < N; n++) {
   check(`#${n} geometry faithful`, true); // reached here = clean
 
   const exp = oracle(sc);
-  const qr = calcQuote(sc.segs, sc.apps, sc.q, DEFAULT_CONFIG, sc.margin);
+  const qr = calcQuote(sc.segs, sc.apps, sc.q, CU_CFG, sc.margin);
   const tag = `#${n} P=${sc.q.pressure} apps=${sc.apps.length}`;
   if (!qr) { check(`${tag} quote`, false, 'null'); continue; }
 
@@ -308,7 +312,7 @@ const baseQ = (p) => ({ addr: '', pressure: p, newMeter: false, pens: 0, dig: 0,
 {
   const segs = [{ id: 1, x1: 120, y1: 280, x2: 440, y2: 280, length: 10 }];
   const apps = [{ id: 1, typeId: 'cooktop', mj: 30, x: 440, y: 280, label: 'C' }];
-  const qr = calcQuote(segs, apps, baseQ(1.2), DEFAULT_CONFIG, 20);
+  const qr = calcQuote(segs, apps, baseQ(1.2), CU_CFG, 20);
   ec('P=1.2 → band F6', qr.band.id === 'F6', qr.band.id);
   ec('P=1.2 size = oracle', qr.sized[0].size === oSize(30, 10, 1.2).size);
 }
@@ -316,8 +320,8 @@ const baseQ = (p) => ({ addr: '', pressure: p, newMeter: false, pens: 0, dig: 0,
 {
   const segs = [{ id: 1, x1: 120, y1: 280, x2: 760, y2: 280, length: 40 }];
   const apps = [{ id: 1, typeId: 'storage_hws', mj: 200, x: 760, y: 280, label: 'H' }];
-  const lo = calcQuote(segs, apps, baseQ(1.6), DEFAULT_CONFIG, 20); // drop 0.47 → F7
-  const hi = calcQuote(segs, apps, baseQ(3.0), DEFAULT_CONFIG, 20); // drop 1.87 → F9
+  const lo = calcQuote(segs, apps, baseQ(1.6), CU_CFG, 20); // drop 0.47 → F7
+  const hi = calcQuote(segs, apps, baseQ(3.0), CU_CFG, 20); // drop 1.87 → F9
   ec('1.6 kPa uses F7', lo.band.id === 'F7');
   ec('3.0 kPa uses F9', hi.band.id === 'F9');
   ec('higher pressure never needs bigger pipe', hi.sized[0].size <= lo.sized[0].size, `F9 DN${hi.sized[0].size} vs F7 DN${lo.sized[0].size}`);
@@ -326,19 +330,19 @@ const baseQ = (p) => ({ addr: '', pressure: p, newMeter: false, pens: 0, dig: 0,
 {
   const segs = [{ id: 1, x1: 120, y1: 280, x2: 920, y2: 280, length: 300 }];
   const apps = [{ id: 1, typeId: 'storage_hws', mj: 200, x: 920, y: 280, label: 'H' }];
-  const qr = calcQuote(segs, apps, baseQ(3.0), DEFAULT_CONFIG, 20);
+  const qr = calcQuote(segs, apps, baseQ(3.0), CU_CFG, 20);
   ec('300m run = oracle (extrapolation clamp)', qr.sized[0].size === oSize(200, 300, 3.0).size, `DN${qr.sized[0].size}`);
 }
 // overflow: demand beyond DN50 capacity → DN50 + overCapacity flag
 {
   const segs = [{ id: 1, x1: 120, y1: 280, x2: 920, y2: 280, length: 200 }];
   const apps = Array.from({ length: 80 }, (_, i) => ({ id: i + 1, typeId: 'storage_hws', mj: 200, x: 920, y: 280, label: 'H' }));
-  const qr = calcQuote(segs, apps, baseQ(1.2), DEFAULT_CONFIG, 20);
+  const qr = calcQuote(segs, apps, baseQ(1.2), CU_CFG, 20);
   ec('massive overflow → DN50 + flag', qr.sized[0].size === 50 && qr.sized[0].overCapacity === true, `DN${qr.sized[0].size}`);
 }
 // guards
-ec('empty → null', calcQuote([], [], baseQ(2), DEFAULT_CONFIG, 20) === null);
-ec('no lengths → null', calcQuote([{ id: 1, x1: 120, y1: 280, x2: 200, y2: 280, length: null }], [{ id: 1, typeId: 'cooktop', mj: 30, x: 200, y: 280, label: 'C' }], baseQ(2), DEFAULT_CONFIG, 20) === null);
+ec('empty → null', calcQuote([], [], baseQ(2), CU_CFG, 20) === null);
+ec('no lengths → null', calcQuote([{ id: 1, x1: 120, y1: 280, x2: 200, y2: 280, length: null }], [{ id: 1, typeId: 'cooktop', mj: 30, x: 200, y: 280, label: 'C' }], baseQ(2), CU_CFG, 20) === null);
 
 console.log(`\n  Ran ${N} randomized scenarios (${skipped} skipped as unclean) + edge cases`);
 console.log(`  appliance-count spread: ${Object.entries(modeCount).sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}:${v}`).join('  ')}`);

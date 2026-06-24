@@ -29,13 +29,14 @@ export const PIPE_COLORS = {
 
 /**
  * Pipe-run locations. The location drives material choice in the copper/PE mix:
- * PE (AS/NZS 4130) is only permitted in concealed/accessible non-living spaces
- * (buried, under-house subfloor, in-roof). External and internal (in-wall) runs
- * are copper. The PE-eligible set is configurable (cfg.peLocations); this list is
- * the canonical id/label/default-eligibility source for the UI.
+ * PE (AS/NZS 4130) is permitted everywhere EXCEPT external (where UV would
+ * degrade it) — buried, under-house, in-roof and in-wall are all PE-eligible.
+ * PE is only actually used where it prices cheaper than copper. The PE-eligible
+ * set is configurable (cfg.peLocations); this list is the canonical
+ * id/label/default-eligibility source for the UI.
  */
 export const PIPE_LOCATIONS = [
-  { id: 'internal', label: 'Internal (in wall)', short: 'INT', color: '#FF5815', pe: false },
+  { id: 'internal', label: 'Internal (in wall)', short: 'INT', color: '#FF5815', pe: true },
   { id: 'external', label: 'External', short: 'EXT', color: '#2563eb', pe: false },
   { id: 'under-house', label: 'Under house', short: 'SUB', color: '#0891b2', pe: true },
   { id: 'in-roof', label: 'In roof', short: 'ROOF', color: '#7c3aed', pe: true },

@@ -28,9 +28,11 @@ export const DEFAULT_CONFIG = {
   // tracer/marking allowance. DN are PE OD sizes. 20-32 from Samios PE; 40+ are
   // [est — tune] (rarely needed on residential gas). PE is sized off F20-F22.
   peRates: { 20: 6, 25: 9, 32: 13, 40: 19, 50: 28, 63: 42, 75: 60, 90: 84, 110: 120, 160: 240 },
-  // Locations where PE is permitted (concealed / non-living). External + internal
-  // (in-wall) are always copper. Editable so policy can change per install style.
-  peLocations: ['buried', 'under-house', 'in-roof'],
+  // Locations where PE is permitted. Only EXTERNAL is copper-forced (PE can't be
+  // UV-exposed); everything else is PE-eligible. PE is only actually used where
+  // the quote comes out cheaper than copper (recommend-cheaper) — short runs
+  // still fall back to copper. Editable so policy can change per install style.
+  peLocations: ['internal', 'buried', 'under-house', 'in-roof'],
   // Copper stub length (m) forced at each appliance connection and at every
   // outside→inside building entry (PE can't be exposed at the transition).
   copperStubM: 1,

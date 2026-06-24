@@ -10,6 +10,9 @@ import { oSize, oCapacity, oPESize, oPEBand } from './_oracle.mjs';
 
 const band = (id) => COPPER_BANDS.find((b) => b.id === id);
 const peBand = (id) => PE_BANDS.find((b) => b.id === id);
+// Copper-only config for the pure copper sizing/pricing checks (internal is now
+// PE-eligible by default; these blocks verify the copper path specifically).
+const CU = { ...DEFAULT_CONFIG, peLocations: [] };
 
 let pass = 0, fail = 0;
 const approx = (a, b, e = 0.01) => Math.abs(a - b) <= e;
@@ -73,7 +76,7 @@ ok('tee cooktop branch = 30', an.flows.s3 === 30);
 
 // Sizes must match the independent band oracle, at two pressures.
 for (const P of [2.0, 2.75]) {
-  const qr = calcQuote(segs, apps, { pressure: P, newMeter: true, pens: 0, dig: 0, conc: 0, twoS: false }, DEFAULT_CONFIG, 20);
+  const qr = calcQuote(segs, apps, { pressure: P, newMeter: true, pens: 0, dig: 0, conc: 0, twoS: false }, CU, 20);
   for (const s of qr.sized) {
     const o = oSize(s.flow, qr.longest, P);
     ok(`tee P=${P} ${s.id} → DN${s.size} matches oracle DN${o.size}`, s.size === o.size && s.oversized === o.oversized);
@@ -94,7 +97,7 @@ for (const P of [2.0, 2.75]) {
   // P=2.0 → F8. DN15 @30m F8 = 39 MJ/h; 38 is 97% of capacity → borderline → DN20, oversized.
   const s = [{ id: 1, x1: 120, y1: 280, x2: 1320, y2: 280, length: 30 }];
   const a = [{ id: 1, typeId: 'x', mj: 38, x: 1320, y: 280, label: 'x' }];
-  const qr = calcQuote(s, a, { pressure: 2.0, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false }, DEFAULT_CONFIG, 20);
+  const qr = calcQuote(s, a, { pressure: 2.0, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false }, CU, 20);
   ok('borderline 38MJ/30m/F8 → DN20 oversized', qr.sized[0].size === 20 && qr.sized[0].oversized === true);
 }
 
@@ -151,26 +154,23 @@ ok('PE F21 DN160 null @2m (omitted at short run)', capacityAt(peBand('F21'), 160
 const mixJob = (P) => ({ addr: '', pressure: P, newMeter: false, pens: 0, dig: 0, conc: 0, twoS: false });
 const segOf = (qr, id) => qr.sized.find((s) => s.id === id);
 {
-  // s1 internal (copper-only), s2 buried (PE-eligible), one cooktop on s2's end.
+  // Internal (in-wall) is now PE-eligible — a long enough internal run uses PE in
+  // the mix and beats copper. Assert on the mix scenario directly (the recommended
+  // primary is the cheaper of mix/copper, which here is the mix).
   const ms = [
-    { id: 's1', x1: 120, y1: 280, x2: 440, y2: 280, length: 10, location: 'internal' },
-    { id: 's2', x1: 440, y1: 280, x2: 440, y2: 160, length: 8, location: 'buried' }
+    { id: 's1', x1: 120, y1: 280, x2: 600, y2: 280, length: 24, location: 'internal' }
   ];
-  const ma = [{ id: 'a1', typeId: 'cooktop', x: 440, y: 160, mj: 30, label: 'Cooktop' }];
-  // 1.6 kPa (F7): copper stays DN20 on this short buried branch, so swapping to
-  // PE clearly out-saves the 1-stub transition labour. (At higher supply the
-  // bigger allowable drop sizes copper down to DN15 and PE no longer pays here.)
+  const ma = [{ id: 'a1', typeId: 'cooktop', x: 600, y: 280, mj: 30, label: 'Cooktop' }];
   const qr = calcQuote(ms, ma, mixJob(1.6), DEFAULT_CONFIG, 40);
-  ok('mix: internal seg → copper', segOf(qr, 's1').material === 'copper');
-  ok('mix: buried seg → PE', segOf(qr, 's2').material === 'pe');
-  ok('mix: PE DN comes from PE_SIZES', PE_SIZES.includes(segOf(qr, 's2').size));
+  const mix = qr.scenarios.mix;
+  ok('mix: internal seg → PE (now eligible)', segOf(mix, 's1').material === 'pe');
+  ok('mix: PE DN comes from PE_SIZES', PE_SIZES.includes(segOf(mix, 's1').size));
+  ok('mix: appliance on PE branch → 1 copper stub', mix.stubs.count === 1);
   ok('mix: copper scenario all copper', qr.scenarios.copper.sized.every((s) => s.material === 'copper'));
-  ok('mix: maxPE puts internal on PE too', qr.scenarios.maxPE.sized.find((s) => s.id === 's1').material === 'pe');
-  ok('mix: appliance on PE branch → 1 copper stub', qr.stubs.count === 1);
-  ok('mix: hasPE flag set', qr.hasPE === true);
-  ok('mix: PE is cheaper → positive saving', qr.saving > 0);
-  ok('mix: primary total = mix scenario', approx(qr.total, qr.scenarios.mix.total));
-  ok('mix: copper total ≥ mix total', qr.scenarios.copper.total >= qr.scenarios.mix.total);
+  ok('mix: hasPE in mix scenario', mix.peM > 0);
+  ok('mix: PE cheaper on 24m run → mix < copper', mix.total < qr.scenarios.copper.total);
+  ok('mix: primary = cheaper scenario (mix here)', approx(qr.total, mix.total));
+  ok('mix: copper total ≥ mix total', qr.scenarios.copper.total >= mix.total);
 }
 {
   // External seg meets a buried seg → outside→inside entry; appliance on PE end.
