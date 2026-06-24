@@ -13,7 +13,7 @@
  *
  * Layout discipline: star pattern (meter → trunk → junction → 1-4 branches).
  * Simple enough to avoid geometry surprises but still exercises T-junctions,
- * multiple appliances, and all five pipe locations.
+ * multiple appliances, and all three pipe locations.
  *
  * Run: node tests/pricing-qa.test.mjs [N]   (default 1000)
  */
@@ -112,7 +112,7 @@ function makeScenario(n) {
   const peLocations =
     r < 0.15 ? [] :
     r < 0.35 ? ['buried'] :
-    r < 0.55 ? ['buried', 'under-house'] :
+    r < 0.55 ? ['internal'] :
     r < 0.75 ? DEFAULT_CONFIG.peLocations :
     PE_LOCS;
 

@@ -6,11 +6,11 @@
  *
  * COPPER / PE MIX
  * ----------------
- * Each segment carries a `location`. PE (AS/NZS 4130, tables F20-F22) is only
- * permitted in the configured locations (cfg.peLocations — concealed/non-living:
- * buried, under-house, in-roof); external and internal runs are copper. PE is
- * also unavailable below 1.5 kPa supply (the standard omits it), in which case
- * the whole job falls back to copper.
+ * Each segment carries a `location` (interior / exterior / buried). PE (AS/NZS
+ * 4130, tables F20-F22) is permitted in the configured locations (cfg.peLocations
+ * — interior + buried by default); exterior runs are copper (UV). PE is also
+ * unavailable below 1.5 kPa supply (the standard omits it), in which case the
+ * whole job falls back to copper.
  *
  * Three scenarios are priced from one analysis:
  *   • copper — every segment copper (conservative baseline)
